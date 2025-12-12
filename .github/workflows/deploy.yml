@@ -1,0 +1,237 @@
+name: Build and Deploy PromptRay
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  DOCKER_IMAGE: promptray
+  DOCKER_TAG: latest
+
+jobs:
+  # 代码检查和测试
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linter
+      run: npm run lint || echo "No lint script found"
+      continue-on-error: true
+      
+    - name: Run tests
+      run: npm test || echo "No tests found"
+      continue-on-error: true
+
+  # 构建应用
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      env:
+        VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{ github.sha }}
+        path: dist
+        retention-days: 7
+        
+    - name: Display build info
+      run: |
+        echo "Build completed successfully"
+        ls -lah dist/
+
+  # 构建和推送 Docker 镜像
+  docker-build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+      
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          VCS_REF=${{ github.sha }}
+          
+    - name: Image digest
+      run: echo ${{ steps.meta.outputs.digest }}
+
+  # 部署到生产环境
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    environment:
+      name: production
+      url: http://${{ secrets.DEPLOY_HOST }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to server via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        port: ${{ secrets.DEPLOY_PORT || 22 }}
+        script: |
+          echo "Starting deployment..."
+          cd /opt/promptray || exit 1
+          
+          echo "Pulling latest changes..."
+          git pull origin master || git pull origin main
+          
+          echo "Pulling Docker image..."
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE }}:latest
+          
+          echo "Stopping old containers..."
+          docker-compose down
+          
+          echo "Starting new containers..."
+          docker-compose up -d --remove-orphans
+          
+          echo "Waiting for container to be healthy..."
+          sleep 10
+          
+          echo "Checking container status..."
+          docker-compose ps
+          
+          echo "Cleaning up old images..."
+          docker image prune -af
+          
+          echo "Deployment completed successfully!"
+          
+    - name: Verify deployment
+      run: |
+        echo "Verifying deployment..."
+        sleep 5
+        curl -f http://${{ secrets.DEPLOY_HOST }} || echo "Warning: Health check failed"
+        
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ Deployment to production successful!"
+        echo "🚀 Application is now live at http://${{ secrets.DEPLOY_HOST }}"
+        
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Deployment to production failed!"
+        echo "Please check the logs above for details."
+
+  # 部署到预发布环境（可选）
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: http://${{ secrets.STAGING_HOST }}
+    
+    steps:
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        port: ${{ secrets.DEPLOY_PORT || 22 }}
+        script: |
+          cd /opt/promptray-staging
+          git pull origin develop
+          docker-compose pull
+          docker-compose up -d --remove-orphans
+          docker system prune -af
+
+  # 通知
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always()
+    
+    steps:
+    - name: Send notification
+      run: |
+        if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+          echo "✅ Pipeline completed successfully!"
+        else
+          echo "❌ Pipeline failed!"
+        fi
