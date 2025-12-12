@@ -25,32 +25,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
       - name: Install dependencies
-        run: |
-          # 如果有 package-lock.json 使用 npm ci，否则使用 npm install
-          if [ -f package-lock.json ]; then
-            echo "Found package-lock.json, using npm ci"
-            npm ci
-          else
-            echo "No package-lock.json found, using npm install"
-            npm install
-          fi
+        run: npm install
         
       - name: Build project
         run: npm run build
         env:
-          # 从 GitHub Secrets 中获取 Gemini API key
           VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        
-      - name: List build output
-        run: |
-          echo "Build completed successfully!"
-          echo "Build output structure:"
-          ls -la dist/
-          echo "Index.html preview:"
-          head -10 dist/index.html || echo "index.html not found"
         
       - name: Setup Pages
         uses: actions/configure-pages@v5
