@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { PromptFormData, ExampleMode } from '../../types';
 import { runGeminiPrompt } from '../../services/geminiService';
+import { saveDirectoryHandle, getDirectoryHandle } from '../../services/storageService';
 
 type NotifyFn = (message: string, type: 'success' | 'info' | 'error') => void;
 
@@ -61,7 +62,7 @@ export const usePromptExamplesLogic = ({
     const existingExamples = formData.examples || [];
     const iterativeExamples = existingExamples.filter(ex => ex.mode === 'iterative');
     const lastIterative = iterativeExamples[iterativeExamples.length - 1];
-    
+
     // 如果没有迭代示例，使用最后一个独立示例作为起点
     const lastIndependent = existingExamples.filter(ex => !ex.mode || ex.mode === 'independent').slice(-1)[0];
     const baseExample = lastIterative || lastIndependent;
@@ -96,12 +97,12 @@ export const usePromptExamplesLogic = ({
 中文提示词: ${formData.chinesePrompt || '（无）'}
 系统指令: ${formData.systemInstruction || '（无）'}
 
-${lastIterative 
-  ? `上一轮迭代（第${iterationIndex - 1}轮）：
+${lastIterative
+          ? `上一轮迭代（第${iterationIndex - 1}轮）：
 输入: ${lastIterative.input}
 输出: ${lastIterative.output}
 ${lastIterative.previousOutput ? `\n上上轮输出（供对比）:\n${lastIterative.previousOutput}` : ''}`
-  : `基础示例（将作为迭代起点）：
+          : `基础示例（将作为迭代起点）：
 输入: ${baseExample.input}
 输出: ${baseExample.output}`}
 
@@ -124,7 +125,7 @@ ${lastIterative.previousOutput ? `\n上上轮输出（供对比）:\n${lastItera
       if (codeBlockMatch) {
         try {
           parsed = JSON.parse(codeBlockMatch[1]);
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // 策略2: 提取第一个完整JSON对象
@@ -135,7 +136,7 @@ ${lastIterative.previousOutput ? `\n上上轮输出（供对比）:\n${lastItera
           if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
             parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // 策略3: 正则提取
@@ -144,11 +145,11 @@ ${lastIterative.previousOutput ? `\n上上轮输出（供对比）:\n${lastItera
         const outputPattern = /"output"\s*:\s*"((?:[^"\\]|\\.|\\n)*)"|"output"\s*:\s*```([\s\S]*?)```/;
         const inputMatch = raw.match(inputPattern);
         const outputMatch = raw.match(outputPattern);
-        
+
         if (inputMatch && outputMatch) {
           const inputValue = (inputMatch[1] || inputMatch[2] || '').replace(/\\n/g, '\n').replace(/\\"/g, '"');
           const outputValue = (outputMatch[1] || outputMatch[2] || '').replace(/\\n/g, '\n').replace(/\\"/g, '"');
-          
+
           if (inputValue && outputValue) {
             newExample = {
               input: inputValue.trim(),
@@ -216,9 +217,9 @@ ${lastIterative.previousOutput ? `\n上上轮输出（供对比）:\n${lastItera
     setIsGeneratingExamples(true);
     const existingExamples = formData.examples || [];
     const existingCount = existingExamples.length;
-    
+
     try {
-      
+
       // 根据已有示例数量，生成不同场景的示例
       let scenarioHint = '';
       if (existingCount === 0) {
@@ -269,7 +270,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
       // 匹配 ```json ... ``` 或 ``` ... ``` 格式，使用非贪婪匹配以处理嵌套大括号
       const codeBlockPattern = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/;
       let codeBlockMatch = raw.match(codeBlockPattern);
-      
+
       // 如果第一次匹配失败，尝试更宽松的匹配（允许代码块中有换行和更多内容）
       if (!codeBlockMatch) {
         const relaxedPattern = /```(?:json)?\s*([\s\S]*?)\s*```/;
@@ -283,7 +284,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
           }
         }
       }
-      
+
       if (codeBlockMatch && codeBlockMatch[1]) {
         try {
           // 清理可能的额外空白字符
@@ -324,15 +325,15 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
         // 匹配 "input": "..." 或 "input": ```...```
         const inputPattern = /"input"\s*:\s*"((?:[^"\\]|\\.|\\n|\\r|\\t)*)"|"input"\s*:\s*```([\s\S]*?)```|"input"\s*:\s*'([^']*)'/;
         const outputPattern = /"output"\s*:\s*"((?:[^"\\]|\\.|\\n|\\r|\\t)*)"|"output"\s*:\s*```([\s\S]*?)```|"output"\s*:\s*'([^']*)'/;
-        
+
         const inputMatch = raw.match(inputPattern);
         const outputMatch = raw.match(outputPattern);
-        
+
         if (inputMatch && outputMatch) {
           // 提取值，支持多种格式
           let inputValue = inputMatch[1] || inputMatch[2] || inputMatch[3] || '';
           let outputValue = outputMatch[1] || outputMatch[2] || outputMatch[3] || '';
-          
+
           // 处理转义字符
           inputValue = inputValue
             .replace(/\\n/g, '\n')
@@ -346,7 +347,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
             .replace(/\\t/g, '\t')
             .replace(/\\"/g, '"')
             .replace(/\\\\/g, '\\');
-          
+
           if (inputValue && outputValue) {
             newExample = {
               input: inputValue.trim(),
@@ -396,7 +397,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
         const lines = raw.split('\n');
         let foundInput = '';
         let foundOutput = '';
-        
+
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           // 匹配 input 字段
@@ -414,7 +415,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
             }
           }
         }
-        
+
         if (foundInput && foundOutput) {
           newExample = {
             input: foundInput.trim(),
@@ -428,7 +429,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
         console.error('JSON解析失败 - 原始响应:', raw);
         console.error('解析后的对象:', parsed);
         console.error('提取的示例:', newExample);
-        
+
         // 提供更友好的错误信息，包含原始响应的前200个字符
         const preview = raw.length > 200 ? raw.substring(0, 200) + '...' : raw;
         throw new Error(
@@ -456,7 +457,7 @@ ${existingCount > 0 ? `已有示例（供参考，避免重复）：\n${existing
         stack: error instanceof Error ? error.stack : undefined,
         existingCount,
       });
-      
+
       if (error instanceof Error) {
         // 处理服务过载
         if (error.message.includes('503') || error.message.includes('overloaded')) {
@@ -574,16 +575,42 @@ ${target.input}`;
       }
     };
 
-    const sanitizedTitle = formData.title?.replace(/[^a-z0-9]/gi, '_') || 'untitled';
+    // 修复文件名生成逻辑：支持中文，仅替换文件系统非法字符
+    const sanitizedTitle = (formData.title || 'untitled').replace(/[\\/:*?"<>|]/g, '_');
     const fileName = `${sanitizedTitle}_${Date.now()}.json`;
     const fileContent = JSON.stringify(exportData, null, 2);
 
-    // 检查是否已选择目录（通过 File System Access API）
-    const savedDirectoryPath = localStorage.getItem('examples_directory_path');
-    const hasSelectedDirectory = savedDirectoryPath && savedDirectoryPath !== 'examples';
+    // 检查是否已选择目录（通过 IDB 获取 Handle）
+    let dirHandle = await getDirectoryHandle('examples_dir_handle');
 
-    // 如果已选择目录且浏览器支持，使用 File System Access API 直接保存
-    if (hasSelectedDirectory && 'showSaveFilePicker' in window) {
+    // 如果已有 Handle，尝试直接保存
+    if (dirHandle) {
+      try {
+        // 检查权限
+        const permissionOptions = { mode: 'readwrite' };
+        if ((await dirHandle.queryPermission(permissionOptions)) !== 'granted') {
+          // 请求权限
+          if ((await dirHandle.requestPermission(permissionOptions)) !== 'granted') {
+            throw new Error('Permission denied');
+          }
+        }
+
+        // 获取文件句柄并写入
+        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(fileContent);
+        await writable.close();
+
+        onNotify?.(`已导出到: ${dirHandle.name}/${fileName}`, 'success');
+        return;
+      } catch (error: any) {
+        console.warn("Direct save failed, falling back to picker:", error);
+        // Handle失效或权限被拒，降级处理
+      }
+    }
+
+    // 回退方案：使用 showSaveFilePicker (如果支持)
+    if ('showSaveFilePicker' in window) {
       try {
         const fileHandle = await (window as any).showSaveFilePicker({
           suggestedName: fileName,
@@ -592,33 +619,24 @@ ${target.input}`;
             accept: { 'application/json': ['.json'] }
           }]
         });
-        
+
         const writable = await fileHandle.createWritable();
         await writable.write(fileContent);
         await writable.close();
-        
+
         onNotify?.(`已导出 ${examples.length} 个示例到文件`, 'success');
         return;
       } catch (error: any) {
-        // 用户取消选择，不显示错误
-        if (error.name === 'AbortError') {
-          return;
-        }
-        // 其他错误，回退到传统下载方式
-        console.log('File System Access API failed, using fallback:', error);
+        if (error.name === 'AbortError') return;
+        console.error('File System Access API failed', error);
       }
     }
 
-    // 回退方案：使用传统下载方式（不弹出确认框，直接下载）
+    // 最终回退方案：传统下载
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(fileContent);
     const downloadAnchorNode = document.createElement('a');
-    
-    // 使用默认保存目录（如果已设置）作为文件名前缀
-    const defaultDir = localStorage.getItem('examples_default_directory') || 'examples';
-    const fileNameWithPath = `${defaultDir}/${fileName}`;
-    
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", fileNameWithPath);
+    downloadAnchorNode.setAttribute("download", fileName);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -632,9 +650,9 @@ ${target.input}`;
       try {
         const text = e.target?.result as string;
         const parsed = JSON.parse(text);
-        
+
         let importedExamples: any[] = [];
-        
+
         // 支持多种格式
         if (Array.isArray(parsed)) {
           importedExamples = parsed;
@@ -647,10 +665,10 @@ ${target.input}`;
         }
 
         // 验证示例格式
-        const validExamples = importedExamples.filter((ex: any) => 
-          ex && 
-          typeof ex === 'object' && 
-          typeof ex.input === 'string' && 
+        const validExamples = importedExamples.filter((ex: any) =>
+          ex &&
+          typeof ex === 'object' &&
+          typeof ex.input === 'string' &&
           typeof ex.output === 'string'
         );
 
@@ -669,7 +687,7 @@ ${target.input}`;
             const hash = `${ex.input.trim()}|${ex.output.trim()}`;
             return !existingHashes.has(hash);
           });
-          
+
           const merged = [...existing, ...newExamples];
           onNotify?.(
             `已导入 ${newExamples.length} 个新示例${merged.length > existing.length + newExamples.length ? `（${merged.length - existing.length - newExamples.length} 个重复已跳过）` : ''}`,
@@ -708,7 +726,7 @@ ${target.input}`;
     const historyKey = `examples_history_${formData.title?.replace(/[^a-z0-9]/gi, '_') || 'default'}`;
     const existingHistory = localStorage.getItem(historyKey);
     let history: any[] = [];
-    
+
     if (existingHistory) {
       try {
         history = JSON.parse(existingHistory);
@@ -720,7 +738,7 @@ ${target.input}`;
     // 添加到历史记录，保留最近 20 个
     history = [historyItem, ...history].slice(0, 20);
     localStorage.setItem(historyKey, JSON.stringify(history));
-    
+
     onNotify?.(`已保存到历史记录：${historyItem.name}`, 'success');
     return historyItem;
   }, [formData.examples, formData.title, onNotify]);
@@ -738,9 +756,9 @@ ${target.input}`;
   const getHistoryList = useCallback((): any[] => {
     const historyKey = `examples_history_${formData.title?.replace(/[^a-z0-9]/gi, '_') || 'default'}`;
     const existingHistory = localStorage.getItem(historyKey);
-    
+
     if (!existingHistory) return [];
-    
+
     try {
       const history = JSON.parse(existingHistory);
       return Array.isArray(history) ? history : [];
@@ -764,27 +782,17 @@ ${target.input}`;
         startIn: 'downloads'
       });
 
-      // 保存目录名称（用于显示）
-      const dirName = directoryHandle.name || 'selected_directory';
-      localStorage.setItem('examples_directory_path', dirName);
-      
-      // 尝试保存目录句柄到 IndexedDB（用于持久化权限）
-      try {
-        // 检查是否支持 IndexedDB
-        if ('indexedDB' in window) {
-          // 将目录句柄序列化（实际上目录句柄无法直接序列化）
-          // 但我们可以保存一个标记，表示用户已授权
-          localStorage.setItem('examples_directory_authorized', 'true');
-        }
-      } catch (e) {
-        console.log('Failed to save directory handle:', e);
-      }
-      
-      onNotify?.(`已选择保存目录: ${dirName}。导出时将直接保存到此目录，无需确认。`, 'success');
+      // 保存 Handle 到 IndexedDB
+      await saveDirectoryHandle('examples_dir_handle', directoryHandle);
+
+      const dirName = directoryHandle.name;
+      // 仅用于UI显示，不用于逻辑判断
+      localStorage.setItem('examples_directory_name', dirName);
+
+      onNotify?.(`已绑定目录: ${dirName}。导出时将自动保存到此目录。`, 'success');
       return dirName;
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        // 用户取消选择
         return null;
       }
       console.error('Directory selection error:', error);

@@ -162,15 +162,15 @@ const validateAndSanitizePrompts = (data: any): Prompt[] => {
   data.forEach((item, index) => {
     if (isValidPrompt(item)) {
       // 确保 examples 被正确保留（即使是空数组也要保留）
-      const sanitizedExamples = Array.isArray(item.examples) 
-        ? item.examples.filter((ex: any) => 
-            ex && 
-            typeof ex === 'object' && 
-            typeof ex.input === 'string' && 
-            typeof ex.output === 'string'
-          )
+      const sanitizedExamples = Array.isArray(item.examples)
+        ? item.examples.filter((ex: any) =>
+          ex &&
+          typeof ex === 'object' &&
+          typeof ex.input === 'string' &&
+          typeof ex.output === 'string'
+        )
         : undefined;
-      
+
       // Ensure all required fields exist with defaults
       validPrompts.push({
         ...item,
@@ -204,13 +204,13 @@ export const getPrompts = (): Prompt[] => {
   try {
     const parsed = JSON.parse(stored);
     const validated = validateAndSanitizePrompts(parsed);
-    
+
     // If validation fixed issues, save the cleaned data
     if (validated.length !== parsed.length || JSON.stringify(validated) !== JSON.stringify(parsed)) {
       console.info("Data validation fixed issues, saving cleaned data");
       savePrompts(validated);
     }
-    
+
     return validated;
   } catch (e) {
     console.error("Failed to parse prompts, resetting to seed data", e);
@@ -226,77 +226,128 @@ export const savePrompts = (prompts: Prompt[]) => {
 };
 
 export const getCustomCategories = (): string[] => {
-    const stored = localStorage.getItem(CATEGORIES_KEY);
-    if (!stored) return [];
-    try {
-        const parsed = JSON.parse(stored);
-        // Validate it's an array of strings
-        if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
-            return parsed;
-        }
-        console.warn("Invalid categories format, resetting");
-        return [];
-    } catch (e) {
-        console.error("Failed to parse categories", e);
-        return [];
+  const stored = localStorage.getItem(CATEGORIES_KEY);
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    // Validate it's an array of strings
+    if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+      return parsed;
     }
+    console.warn("Invalid categories format, resetting");
+    return [];
+  } catch (e) {
+    console.error("Failed to parse categories", e);
+    return [];
+  }
 };
 
 export const saveCustomCategories = (categories: string[]) => {
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
 };
 
 export const getUserTheme = (): string => {
-    const stored = localStorage.getItem(THEME_KEY);
-    // Normalize legacy value "default" to the actual theme id
-    if (!stored || stored === 'default') return 'theme-default';
-    return stored;
+  const stored = localStorage.getItem(THEME_KEY);
+  // Normalize legacy value "default" to the actual theme id
+  if (!stored || stored === 'default') return 'theme-default';
+  return stored;
 };
 
 export const saveUserTheme = (themeId: string) => {
-    localStorage.setItem(THEME_KEY, themeId);
+  localStorage.setItem(THEME_KEY, themeId);
 };
 
 export interface FilterState {
-    selectedCategory: string;
-    selectedTag?: string;
-    searchQuery: string;
-    currentView: PromptView;
-    sortBy?: SortBy;
-    sortOrder?: SortOrder;
-    favoritesOnly?: boolean;
-    recentOnly?: boolean;
+  selectedCategory: string;
+  selectedTag?: string;
+  searchQuery: string;
+  currentView: PromptView;
+  sortBy?: SortBy;
+  sortOrder?: SortOrder;
+  favoritesOnly?: boolean;
+  recentOnly?: boolean;
 }
 
 export const getFilterState = (): FilterState | null => {
-    const stored = localStorage.getItem(FILTERS_KEY);
-    if (!stored) return null;
-    try {
-        const parsed = JSON.parse(stored);
-        // Validate structure
-        if (parsed && typeof parsed.selectedCategory === 'string' && typeof parsed.searchQuery === 'string') {
-            return {
-                selectedCategory: parsed.selectedCategory,
-                selectedTag: parsed.selectedTag || undefined,
-                searchQuery: parsed.searchQuery || '',
-                currentView: parsed.currentView || 'grid',
-                sortBy: parsed.sortBy || 'createdAt',
-                sortOrder: parsed.sortOrder || 'desc',
-                favoritesOnly: !!parsed.favoritesOnly,
-                recentOnly: !!parsed.recentOnly
-            };
-        }
-        return null;
-    } catch (e) {
-        console.error("Failed to parse filter state", e);
-        return null;
+  const stored = localStorage.getItem(FILTERS_KEY);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored);
+    // Validate structure
+    if (parsed && typeof parsed.selectedCategory === 'string' && typeof parsed.searchQuery === 'string') {
+      return {
+        selectedCategory: parsed.selectedCategory,
+        selectedTag: parsed.selectedTag || undefined,
+        searchQuery: parsed.searchQuery || '',
+        currentView: parsed.currentView || 'grid',
+        sortBy: parsed.sortBy || 'createdAt',
+        sortOrder: parsed.sortOrder || 'desc',
+        favoritesOnly: !!parsed.favoritesOnly,
+        recentOnly: !!parsed.recentOnly
+      };
     }
+    return null;
+  } catch (e) {
+    console.error("Failed to parse filter state", e);
+    return null;
+  }
 };
 
 export const saveFilterState = (filters: FilterState) => {
-    try {
-        localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
-    } catch (e) {
-        console.error("Failed to save filter state", e);
-    }
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+  } catch (e) {
+    console.error("Failed to save filter state", e);
+  }
+};
+
+// --- IndexedDB for File System Access API Handles ---
+
+const DB_NAME = 'PromptRayDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'handles';
+
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+};
+
+export const saveDirectoryHandle = async (key: string, handle: any): Promise<void> => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(handle, key);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  } catch (e) {
+    console.error("Failed to save directory handle to IDB", e);
+  }
+};
+
+export const getDirectoryHandle = async (key: string): Promise<any | null> => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(key);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result || null);
+    });
+  } catch (e) {
+    console.error("Failed to get directory handle from IDB", e);
+    return null;
+  }
 };
