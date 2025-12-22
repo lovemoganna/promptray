@@ -175,7 +175,7 @@ print(response.text)`,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-6 sm:p-8 animate-fade-in">
-      <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 w-full max-w-3xl rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-slide-up-fade">
+      <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 w-full max-w-[96vw] lg:max-w-6xl 2xl:max-w-[1500px] rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-slide-up-fade max-h-[88vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-gray-900/60">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
             <Icons.Code size={16} className="text-brand-500" /> Developer Snippets

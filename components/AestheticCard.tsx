@@ -65,7 +65,7 @@ export const AestheticCard: React.FC<AestheticCardProps> = ({
 
   const renderCard = (
     <div
-      className={`relative overflow-hidden ${isModal ? 'rounded-3xl max-w-4xl w-full' : 'rounded-2xl aspect-[1.85/1] group/card'
+      className={`relative overflow-hidden ${isModal ? 'rounded-3xl w-full' : 'rounded-2xl aspect-[1.85/1] group/card'
         } bg-gray-950 border border-white/10 shadow-2xl transition-all duration-500`}
     >
       {/* Background Section */}
@@ -202,7 +202,7 @@ export const AestheticCard: React.FC<AestheticCardProps> = ({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-5xl"
+          className="w-full max-w-[96vw] lg:max-w-6xl 2xl:max-w-[1500px]"
         >
           {renderCard}
           <div className="text-center mt-6 text-gray-500 text-xs font-mono tracking-widest uppercase opacity-70">

@@ -224,7 +224,7 @@ export const PromptShareImage: React.FC<PromptShareImageProps> = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl relative"
+        className="w-full max-w-[96vw] lg:max-w-6xl 2xl:max-w-[1500px] relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Image Container */}

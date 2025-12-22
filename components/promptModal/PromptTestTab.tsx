@@ -46,7 +46,7 @@ export const PromptTestTab: React.FC<PromptTestTabProps> = ({
   const [saveDescription, setSaveDescription] = React.useState('');
   const [saveAsCheckpoint, setSaveAsCheckpoint] = React.useState(false);
   return (
-    <div className="space-y-8 w-full animate-slide-up-fade">
+    <div className="space-y-6 w-full animate-slide-up-fade">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Col: Variables & Settings */}
         <div className="md:col-span-1 space-y-6">
@@ -271,11 +271,10 @@ export const PromptTestTab: React.FC<PromptTestTabProps> = ({
               {sortedRuns.map((run) => (
                 <div
                   key={run.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 group cursor-pointer hover:scale-[1.02] ${
-                    run.rating === 'good'
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 group cursor-pointer hover:scale-[1.02] ${run.rating === 'good'
                       ? 'bg-green-500/8 border-green-500/25 hover:bg-green-500/12'
                       : 'bg-gray-900/50 border-white/10 hover:bg-white/5 hover:border-white/15'
-                  }`}
+                    }`}
                 >
                   <div
                     className="flex-1 flex flex-col gap-1"
@@ -288,13 +287,12 @@ export const PromptTestTab: React.FC<PromptTestTabProps> = ({
                         </span>
                       )}
                       <span
-                        className={`text-xs font-mono font-medium ${
-                          run.rating === 'good'
+                        className={`text-xs font-mono font-medium ${run.rating === 'good'
                             ? 'text-green-400'
                             : run.rating === 'bad'
-                            ? 'text-red-400 line-through opacity-70'
-                            : 'text-gray-300'
-                        }`}
+                              ? 'text-red-400 line-through opacity-70'
+                              : 'text-gray-300'
+                          }`}
                       >
                         {new Date(run.timestamp).toLocaleString()}
                       </span>
@@ -321,22 +319,20 @@ export const PromptTestTab: React.FC<PromptTestTabProps> = ({
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => onRateRun(run.id, 'good')}
-                      className={`p-1.5 rounded-lg hover:bg-green-500/15 transition-all duration-200 transform hover:scale-110 active:scale-95 ${
-                        run.rating === 'good'
+                      className={`p-1.5 rounded-lg hover:bg-green-500/15 transition-all duration-200 transform hover:scale-110 active:scale-95 ${run.rating === 'good'
                           ? 'text-green-400'
                           : 'text-gray-500 hover:text-green-400'
-                      }`}
+                        }`}
                       title="Mark as Good"
                     >
                       <Icons.ThumbsUp size={12} />
                     </button>
                     <button
                       onClick={() => onRateRun(run.id, 'bad')}
-                      className={`p-1.5 rounded-lg hover:bg-red-500/15 transition-all duration-200 transform hover:scale-110 active:scale-95 ${
-                        run.rating === 'bad'
+                      className={`p-1.5 rounded-lg hover:bg-red-500/15 transition-all duration-200 transform hover:scale-110 active:scale-95 ${run.rating === 'bad'
                           ? 'text-red-400'
                           : 'text-gray-500 hover:text-red-400'
-                      }`}
+                        }`}
                       title="Mark as Bad"
                     >
                       <Icons.ThumbsDown size={12} />

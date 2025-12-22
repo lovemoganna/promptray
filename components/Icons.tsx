@@ -1,16 +1,16 @@
-import { 
-  Code2, 
-  PenTool, 
-  Lightbulb, 
-  BarChart3, 
-  Smile, 
-  Box, 
-  LayoutGrid, 
-  Search, 
-  Plus, 
-  MoreHorizontal, 
-  Copy, 
-  Trash2, 
+import {
+  Code2,
+  PenTool,
+  Lightbulb,
+  BarChart3,
+  Smile,
+  Box,
+  LayoutGrid,
+  Search,
+  Plus,
+  MoreHorizontal,
+  Copy,
+  Trash2,
   Edit3,
   X,
   Star,
@@ -49,7 +49,8 @@ import {
   ChevronRight,
   ArrowUp,
   ArrowDown,
-  Table
+  Table,
+  ChevronUp
 } from 'lucide-react';
 
 export const Icons = {
@@ -104,30 +105,31 @@ export const Icons = {
   ChevronRight,
   ArrowUp,
   ArrowDown,
-  Table
+  Table,
+  ChevronUp
 };
 
 export const getIconForCategory = (category: string) => {
-    switch (category) {
-        case 'Code': return Icons.Code;
-        case 'Writing': return Icons.Writing;
-        case 'Ideas': return Icons.Ideas;
-        case 'Analysis': return Icons.Analysis;
-        case 'Fun': return Icons.Fun;
-        case 'Misc': return Icons.Misc;
-        case 'All': return Icons.All;
-        case 'Trash': return Icons.Trash;
-        default: return Icons.Hash;
-    }
+  switch (category) {
+    case 'Code': return Icons.Code;
+    case 'Writing': return Icons.Writing;
+    case 'Ideas': return Icons.Ideas;
+    case 'Analysis': return Icons.Analysis;
+    case 'Fun': return Icons.Fun;
+    case 'Misc': return Icons.Misc;
+    case 'All': return Icons.All;
+    case 'Trash': return Icons.Trash;
+    default: return Icons.Hash;
+  }
 };
 
 export const getColorForCategory = (category: string) => {
-    switch (category) {
-        case 'Code': return 'text-blue-400';
-        case 'Writing': return 'text-purple-400';
-        case 'Ideas': return 'text-yellow-400';
-        case 'Analysis': return 'text-green-400';
-        case 'Fun': return 'text-pink-400';
-        default: return 'text-gray-400';
-    }
+  switch (category) {
+    case 'Code': return 'text-blue-400';
+    case 'Writing': return 'text-purple-400';
+    case 'Ideas': return 'text-yellow-400';
+    case 'Analysis': return 'text-green-400';
+    case 'Fun': return 'text-pink-400';
+    default: return 'text-gray-400';
+  }
 };

@@ -36,6 +36,8 @@ jobs:
           # Map secret GEMINI_API_KEY to VITE_API_KEY for Vite build
           VITE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Ensure correct base for GitHub Pages project site (will publish to /repo-name/)
+          VITE_BASE: ${{ github.event.repository.name && format('/%s/', github.event.repository.name) }}
           
       # Critical for generic SPAs on GitHub Pages: disable Jekyll processing
       # This prevents internal files (starting with _) from being ignored

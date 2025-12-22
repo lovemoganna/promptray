@@ -8,10 +8,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    // GitHub Pages usually implies a subdirectory like /repo-name/
-    // './' works for most cases, but specifically for GitHub Pages custom domains or project pages,
-    // ensure this matches your repository usage.
-    base: './', 
+    // Allow overriding base via env (VITE_BASE) so GitHub Actions can set repo-specific base for project pages.
+    base: env.VITE_BASE || './',
     define: {
       // Map the build-time environment variable to process.env.API_KEY
       // We look for VITE_API_KEY first (standard), then fall back to GEMINI_API_KEY
