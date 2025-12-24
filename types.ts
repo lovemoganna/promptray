@@ -132,6 +132,12 @@ export interface Prompt {
   recommendedModels?: string[];             // 适用模型列表（Midjourney, DALL-E, Sora, Claude...）
   usageNotes?: string;                      // 使用说明
   cautions?: string;                        // 注意事项 / 避坑
+  // 自动提取的提示词视角信息（可选）
+  extracted?: {
+    intent?: string;         // 提示词的主要目的或意图（从内容中抽取）
+    audience?: string;       // 目标受众或使用者
+    constraints?: string[];   // 约束条件或限制（多条）
+  };
   collectedAt?: number;                     // 收藏时间（单独存一份，避免和 createdAt 混淆）
   isFavorite: boolean;
   status?: PromptStatus;

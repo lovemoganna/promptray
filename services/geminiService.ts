@@ -417,6 +417,10 @@ export interface PromptMetadata {
     applicationScene?: string;
     usageNotes?: string;
     cautions?: string;
+    // Optional perspective fields for the prompt (intent / audience / constraints)
+    intent?: string;
+    audience?: string;
+    constraints?: string[];
     recommendedModels?: string[];
 }
 
@@ -439,8 +443,11 @@ export const generatePromptMetadata = async (
 - outputType: 一个字符串，取值范围限定为 ["image","video","audio","text"] 之一。
 - applicationScene: 一个字符串，取值范围限定为 ["角色设计","场景生成","风格转换","故事创作","工具使用","其他"] 之一。
 - usageNotes: 一段简短的中文使用说明，最多 1-2 句。
-- cautions: 一段简短的中文注意事项或使用风险提示，最多 1-2 句。
-- recommendedModels: 一个字符串数组，例如 ["gemini-2.5-flash","gpt-4.1"]，可以为空数组。
+ - cautions: 一段简短的中文注意事项或使用风险提示，最多 1-2 句。
+ - intent: 一段简短的中文，描述该提示词的主要意图或目的（例如：生成教学示例、文本摘要、图像描述等）。
+ - audience: 一段简短的中文，描述目标受众（例如：初学者、产品经理、研究人员）。
+ - constraints: 一个字符串数组，包含要遵守的约束或限制（例如：不超过200字、避免使用缩写等）。
+ - recommendedModels: 一个字符串数组，例如 ["gemini-2.5-flash","gpt-4.1"]，可以为空数组。
 
 下面是需要分析的内容：
 标题: ${title || '(无)'}

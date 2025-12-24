@@ -66,6 +66,12 @@ export const usePromptMetaAndTags = ({
               : prev.recommendedModels && prev.recommendedModels.length > 0
               ? prev.recommendedModels
               : ['gemini-3-flash-preview'],
+          // Inject extracted perspective fields if provided by model
+          extracted: {
+            intent: (parsed as any).intent || (prev.extracted && prev.extracted.intent) || undefined,
+            audience: (parsed as any).audience || (prev.extracted && prev.extracted.audience) || undefined,
+            constraints: (parsed as any).constraints || (prev.extracted && prev.extracted.constraints) || undefined,
+          },
         }));
 
         onNotify?.('已使用模型根据提示词内容自动生成元信息，你可以继续微调。', 'success');
@@ -129,6 +135,37 @@ export const usePromptMetaAndTags = ({
           ? formData.recommendedModels
           : ['gemini-2.5-flash'];
 
+      // Heuristic extraction for prompt-perspective (intent / audience / constraints)
+      const inferredIntent =
+        formData.title && formData.title.trim().length > 0
+          ? formData.title.trim()
+          : (formData.description && formData.description.split(/[\.\n]/)[0]) ||
+            (formData.content && formData.content.split(/[\.\n]/)[0]) ||
+            '';
+
+      const audienceKeywords = ['初学者','新手','专家','资深','经理','产品','学生','研究员','developer','engineer','designer','manager','pm','beginner','expert'];
+      const lower = baseText.toLowerCase();
+      let inferredAudience = '';
+      for (const kw of audienceKeywords) {
+        if (baseText.includes(kw) || lower.includes(kw.toLowerCase())) {
+          inferredAudience = kw;
+          break;
+        }
+      }
+
+      // Simple constraint extraction from Chinese '不超过 X 字' or '避免...' patterns, fallback empty
+      const constraintMatches = [];
+      try {
+        const zhMatches = baseText.match(/不超过\\s*\\d+字?|避免[^，。\\n\\r]*/g);
+        if (zhMatches) constraintMatches.push(...zhMatches.map(s => s.trim()));
+      } catch (e) {}
+      try {
+        const enMatches = baseText.match(/avoid\\s+[^,\\.\\n\\r]*/gi);
+        if (enMatches) constraintMatches.push(...enMatches.map(s => s.trim()));
+      } catch (e) {}
+
+      const inferredConstraints = constraintMatches.length > 0 ? constraintMatches : undefined;
+
       setFormData(prev => ({
         ...prev,
         category: inferredCategory,
@@ -137,6 +174,11 @@ export const usePromptMetaAndTags = ({
         usageNotes,
         cautions,
         recommendedModels,
+        extracted: {
+          intent: inferredIntent || (prev.extracted && prev.extracted.intent) || undefined,
+          audience: inferredAudience || (prev.extracted && prev.extracted.audience) || undefined,
+          constraints: inferredConstraints || (prev.extracted && prev.extracted.constraints) || undefined,
+        },
       }));
 
       onNotify?.('已根据提示词内容自动生成元信息，你可以继续微调。', 'success');

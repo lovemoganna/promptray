@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Prompt, PromptFormData, Category } from '../../types';
 import { Icons } from '../Icons';
 import Tags from '../ui/Tags';
+import PromptMetaPanel from './PromptMetaPanel';
 
 interface PromptEditTabProps {
   formData: PromptFormData;
@@ -59,6 +60,11 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
 
   // Compact select for tighter alignment in the right column
   const compactSelectClass = "w-full bg-gray-950/80 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 transition-all appearance-none cursor-pointer backdrop-blur-sm";
+  // Derived metadata for display
+  const tokenCount = getTokenCount(formData.content || '');
+  const complexityLabel = tokenCount > 800 ? '高 (复杂)' : tokenCount > 300 ? '中 (适中)' : '低 (简单)';
+  const displayModel = (formData.config && (formData.config as any).model) || (formData.recommendedModels && (formData.recommendedModels[0] || '未指定'));
+  const primaryValue = formData.category || (formData.tags && formData.tags[0]) || '未分类';
 
   return (
     <div>
@@ -324,33 +330,17 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             {/* Examples and other full-width sections can follow here if needed */}
           </div>
 
-          {/* Right: Metadata sidebar (single panel, no nested collapses) */}
-          <aside className="lg:col-span-4 space-y-6">
-            <div className="bg-gray-900/50 border border-white/10 rounded-lg p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">元数据</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">使用说明</label>
-                  <textarea value={formData.usageNotes || ''} onChange={e => onFormDataChange({ ...formData, usageNotes: e.target.value })} className="w-full h-20 bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200" placeholder="这个提示词怎么用、有什么技巧？" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">注意事项</label>
-                  <textarea value={formData.cautions || ''} onChange={e => onFormDataChange({ ...formData, cautions: e.target.value })} className="w-full h-20 bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200" placeholder="常见错误、边界条件、避坑提示" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">预览媒体 URL</label>
-                  <input type="text" value={formData.previewMediaUrl || ''} onChange={e => onFormDataChange({ ...formData, previewMediaUrl: e.target.value })} className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="示例图片/视频/音频链接" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={formData.source || ''} onChange={e => onFormDataChange({ ...formData, source: e.target.value })} placeholder="来源" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                  <input type="text" value={formData.sourceAuthor || ''} onChange={e => onFormDataChange({ ...formData, sourceAuthor: e.target.value })} placeholder="作者" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                </div>
-                <div>
-                  <input type="text" value={formData.sourceUrl || ''} onChange={e => onFormDataChange({ ...formData, sourceUrl: e.target.value })} placeholder="来源链接" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                </div>
-              </div>
-            </div>
-          </aside>
+          {/* Right: Structured Metadata sidebar (refactored) */}
+          <PromptMetaPanel
+            formData={formData}
+            onFormDataChange={onFormDataChange}
+            getTokenCount={getTokenCount}
+            onAutoMetadata={onAutoMetadata}
+            onAutoTag={onAutoTag}
+            isAutoMeta={isAutoMeta}
+            isTagging={isTagging}
+            tagSuggestions={tagSuggestions}
+          />
         </div>
       </div>
 
