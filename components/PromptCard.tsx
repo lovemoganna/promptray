@@ -31,13 +31,13 @@ const PromptContentPreview: React.FC<{ content: string; variant: CardTheme }> = 
 
   return (
     <code
-      className={`block text-xs ${textTone} font-mono break-words leading-relaxed space-y-1`}
+      className={`block text-xs ${textTone} font-mono break-words leading-relaxed`}
       style={{ wordBreak: 'break-word' }}
     >
       {parts.map((part, i) => {
         if (part.startsWith('{') && part.endsWith('}')) {
           return (
-            <span key={i} className={`font-semibold rounded-md px-1.5 py-0.5 border ${braceTone}`}>
+            <span key={i} className={`font-semibold rounded-md px-1.5 py-0.5 border ${braceTone} mr-1`}>
               {part}
             </span>
           );
@@ -83,6 +83,11 @@ const buildCopyText = (prompt: Prompt): string => {
   if (meta.length > 0) {
     lines.push('');
     lines.push(meta.join(' | '));
+  }
+  // Attach platform/model info for reproducibility
+  if (prompt.config?.modelProvider || prompt.config?.modelName) {
+    lines.push('');
+    lines.push(`Platform/Model: ${prompt.config?.modelProvider || ''}${prompt.config?.modelName ? ` / ${prompt.config?.modelName}` : ''}`);
   }
 
   if (prompt.usageNotes) {
@@ -138,7 +143,6 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
   const examplesCount = prompt.examples?.length || 0;
   const tokens = Math.round(prompt.content.length / 4);
   const updatedDate = new Date(prompt.updatedAt || prompt.createdAt).toLocaleDateString();
-  const modelLabel = prompt.config?.model?.split('.').pop() || 'default';
   const previewSource = prompt.englishPrompt || prompt.content;
   const previewSnippet = previewSource.slice(0, 220);
 
@@ -194,162 +198,155 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
       data-theme={themeVariant}
       data-selected={isSelected}
       onClick={() => !isLoading && onOpen(prompt)}
-      className={`group relative flex w-full min-w-[260px] min-h-[260px] flex-col rounded-xl transition-all duration-200 cursor-pointer overflow-hidden ${
+      className={`group relative flex w-full max-w-none flex-col rounded-xl transition-all duration-200 cursor-pointer overflow-hidden ${
         tone.card
       } ${tone.hover} ${isSelected ? selectedShadow : ''} ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
       <div className="relative z-10 flex h-full flex-col gap-3 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0 space-y-2.5">
-            <div className="flex flex-wrap md:flex-nowrap items-center gap-1.5">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-wide ${tone.chip}`}
-              >
+        {/* Header Section - 统一间距 */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            {/* Status Badges Row */}
+            <div className="flex flex-nowrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs uppercase tracking-wide ${tone.chip}`}>
                 <CategoryIcon size={13} className={categoryColor} /> {prompt.category}
               </span>
               {hasVariables && (
-                <span className="text-[11px] text-slate-400 flex items-center gap-1 whitespace-nowrap">
+                <span className="text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
                   <Icons.Code size={11} className="text-slate-500" />
                   含变量
                 </span>
               )}
               {prompt.status === 'draft' && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/10 text-slate-400 bg-white/5 whitespace-nowrap">
+                <span className="text-xs px-2 py-0.5 rounded-full border border-white/10 text-slate-400 bg-white/5 whitespace-nowrap">
                   Draft
                 </span>
               )}
               {prompt.status === 'archived' && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full border border-white/10 text-slate-400 bg-white/5 whitespace-nowrap">
+                <span className="text-xs px-2 py-0.5 rounded-full border border-white/10 text-slate-400 bg-white/5 whitespace-nowrap">
                   Archived
                 </span>
               )}
             </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold leading-snug line-clamp-2">{prompt.title}</h3>
-              <p
-                className={`text-xs leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis ${tone.subtle}`}
-              >
+
+            {/* Title and Description */}
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold leading-tight line-clamp-1">{prompt.title}</h3>
+              <p className={`text-xs leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis ${tone.subtle}`}>
                 {prompt.description}
               </p>
             </div>
-            {(prompt.outputType || prompt.applicationScene || examplesCount > 0) && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
-                {prompt.applicationScene && (
-                  <span className="inline-flex items-center gap-1">
-                    <Icons.Analysis size={11} className="text-slate-500" />
-                    {prompt.applicationScene}
-                  </span>
-                )}
-                {prompt.outputType && (
-                  <span className="inline-flex items-center gap-1">
-                    <Icons.Image size={11} className="text-slate-500" />
-                    {prompt.outputType.toUpperCase()}
-                  </span>
-                )}
-                {examplesCount > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Icons.List size={11} className="text-slate-500" />
-                    {examplesCount} 示例
-                  </span>
-                )}
-              </div>
-            )}
+
+            {/* Metadata Row */}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 h-[20px] overflow-hidden">
+              {prompt.applicationScene && (
+                <span className="inline-flex items-center gap-1">
+                  <Icons.Analysis size={11} className="text-slate-500" />
+                  {prompt.applicationScene}
+                </span>
+              )}
+              {prompt.outputType && (
+                <span className="inline-flex items-center gap-1">
+                  <Icons.Image size={11} className="text-slate-500" />
+                  {prompt.outputType.toUpperCase()}
+                </span>
+              )}
+              {examplesCount > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Icons.List size={11} className="text-slate-500" />
+                  {examplesCount} 示例
+                </span>
+              )}
+            </div>
           </div>
 
-          <div
-            className={`flex items-center gap-1 rounded-full border px-1 py-1 ${
-              themeVariant === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-            }`}
-            onClick={stop}
-          >
+          {/* Action Buttons */}
+          <div className={`flex items-center gap-0 rounded-full border px-0.5 py-0.5 ${
+            themeVariant === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+          }`} onClick={stop}>
             {isTrash && onRestore ? (
               <button
                 onClick={handleAction(onRestore)}
-                className="p-1.5 rounded-full text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                className="p-1 rounded-full text-emerald-500 hover:bg-emerald-500/10 transition-colors"
                 title="Restore"
               >
-                <Icons.Restore size={15} />
+                <Icons.Restore size={14} />
               </button>
             ) : (
               <>
                 <button
                   onClick={handleAction(onToggleFavorite)}
-                  className="p-1.5 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors"
+                  className="p-1 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors"
                   title="Favorite"
                 >
-                  <Icons.Star size={15} className={prompt.isFavorite ? 'fill-amber-400 text-amber-400' : ''} />
+                  <Icons.Star size={14} className={prompt.isFavorite ? 'fill-amber-400 text-amber-400' : ''} />
                 </button>
                 <button
                   onClick={handleAction(onDuplicate)}
-                  className="p-1.5 rounded-full text-indigo-500 hover:bg-indigo-500/10 transition-colors"
+                  className="p-1 rounded-full text-indigo-500 hover:bg-indigo-500/10 transition-colors"
                   title="Duplicate"
                 >
-                  <Icons.CopyPlus size={15} />
+                  <Icons.CopyPlus size={14} />
                 </button>
               </>
             )}
             <button
               onClick={handleAction(onDelete)}
-              className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/10 transition-colors"
+              className="p-1 rounded-full text-rose-500 hover:bg-rose-500/10 transition-colors"
               title={isTrash ? 'Delete Permanently' : 'Delete'}
             >
-              <Icons.Delete size={15} />
+              <Icons.Delete size={14} />
             </button>
             {!isTrash && prompt.englishPrompt && (
               <button
                 onClick={(e) => onCopy(buildEnglishCopyText(prompt), e)}
-                className="p-1.5 rounded-full text-slate-300 hover:bg-white/10 transition-colors"
+                className="p-1 rounded-full text-slate-300 hover:bg-white/10 transition-colors"
                 title="Copy English Prompt"
               >
-                <Icons.Copy size={15} />
+                <Icons.Copy size={14} />
               </button>
             )}
             {!isTrash && (
               <button
                 onClick={(e) => onCopy(buildCopyText(prompt), e)}
-                className="p-1.5 rounded-full text-slate-300 hover:bg-white/10 transition-colors"
+                className="p-1 rounded-full text-slate-300 hover:bg-white/10 transition-colors"
                 title="Copy Bilingual Prompt"
               >
-                <Icons.ClipboardCheck size={15} />
+                <Icons.ClipboardCheck size={14} />
               </button>
             )}
           </div>
         </div>
 
+        {/* Preview Section */}
         <div className={`rounded-lg border ${tone.preview} bg-slate-950/40 dark:bg-slate-900/60`}>
           <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
               <Icons.Sparkles size={12} />
               <span>Preview</span>
             </div>
-            <span className={`text-[11px] ${tone.subtle}`}>{modelLabel}</span>
           </div>
-          <div className="px-3 pb-3 space-y-1.5">
+          <div className="px-3 pb-3 h-[80px] overflow-hidden">
             <PromptContentPreview content={previewSnippet} variant={themeVariant} />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400/90">
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Icons.Chip size={11} className="text-slate-500" /> {modelLabel}
-            </span>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Icons.Activity size={11} className="text-slate-500" /> ~{tokens} tks
-            </span>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Icons.Eye size={11} className="text-slate-500" /> {usageCount} uses
-            </span>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Icons.History size={11} className="text-slate-500" /> {updatedDate}
-            </span>
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0" onClick={stop} />
+        {/* Stats Row */}
+        <div className="flex flex-nowrap items-center gap-3 text-[11px] text-slate-400/90">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            <Icons.Activity size={11} className="text-slate-500" /> ~{tokens} tks
+          </span>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            <Icons.Eye size={11} className="text-slate-500" /> {usageCount} uses
+          </span>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            <Icons.History size={11} className="text-slate-500" /> {updatedDate}
+          </span>
         </div>
 
-        {/* Tags moved to bottom for consistent placement in all layouts */}
-        <div className="mt-2 flex flex-wrap gap-1">
+        {/* Tags Section */}
+        <div className="flex flex-wrap gap-1">
           {prompt.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}

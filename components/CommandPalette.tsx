@@ -8,7 +8,7 @@ interface CommandPaletteProps {
   themes: Theme[];
   onSelectTheme: (id: string) => void;
   onNavigate: (view: 'grid' | 'dashboard', category?: string) => void;
-  onAction: (action: 'create' | 'import' | 'export') => void;
+  onAction: (action: 'create' | 'import' | 'export' | 'storage-migration') => void;
 }
 
 type CommandGroup = 'Navigation' | 'Actions' | 'Themes';
@@ -83,12 +83,19 @@ const CommandPaletteComponent: React.FC<CommandPaletteProps> = ({
       group: 'Actions', 
       action: () => onAction('import') 
     },
-    { 
-      id: 'act-export', 
-      label: 'Export Library', 
-      icon: <Icons.Download size={14} />, 
-      group: 'Actions', 
-      action: () => onAction('export') 
+    {
+      id: 'act-export',
+      label: 'Export Library',
+      icon: <Icons.Download size={14} />,
+      group: 'Actions',
+      action: () => onAction('export')
+    },
+    {
+      id: 'act-storage-migration',
+      label: 'Storage Migration',
+      icon: <Icons.Settings size={14} />,
+      group: 'Actions',
+      action: () => onAction('storage-migration')
     },
 
     // Themes

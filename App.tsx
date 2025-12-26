@@ -1,53 +1,87 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { PromptModal } from './components/PromptModal';
 import { Toast } from './components/Toast';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Icons } from './components/Icons';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Dashboard } from './components/Dashboard';
 import { ListView } from './components/ListView';
 import { KnowledgeTable } from './components/KnowledgeTable';
 import { CommandPalette } from './components/CommandPalette';
 import { PromptCard } from './components/PromptCard';
+import { StorageMigrationModal } from './components/settings/StorageMigrationModal';
 import { Prompt, PromptFormData, Theme, PromptVersion } from './types';
+import { getModelsForProvider, ProviderKey } from './services/modelRegistry';
+import SearchableSelect from './components/ui/SearchableSelect';
 import {
   STANDARD_CATEGORIES,
   SPECIAL_CATEGORY_TRASH,
   PromptView
 } from './constants';
+import { emptyStateClass } from './components/ui/styleTokens';
 import { usePromptData } from './hooks/usePromptData';
 import { useFilterState } from './hooks/useFilterState';
 import { useThemeManager } from './hooks/useThemeManager';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
+import { initializeStorageMigration } from './services/storageService';
 
 // Refined Themes - Professional & Aesthetic
 const THEMES: Theme[] = [
-    { 
-        id: 'theme-default', 
-        label: 'Obsidian', 
-        colors: { brand: '#ff5252', bg: '#0a0a0b' },
+    {
+        id: 'theme-default',
+        label: 'Obsidian',
+        colors: {
+            brand: '#ff5252',
+            bg: '#0a0a0b',
+            surface: 'rgba(15, 23, 42, 0.8)',
+            text: '#ffffff',
+            border: 'rgba(255, 255, 255, 0.1)',
+            muted: 'rgb(100, 116, 139)'
+        },
         radius: '1rem',
         bgPattern: 'noise'
     },
-    { 
-        id: 'theme-midnight', 
-        label: 'Ocean', 
-        colors: { brand: '#0ea5e9', bg: '#020617' },
-        radius: '0.5rem', 
+    {
+        id: 'theme-midnight',
+        label: 'Ocean',
+        colors: {
+            brand: '#0ea5e9',
+            bg: '#020617',
+            surface: 'rgba(12, 74, 110, 0.8)',
+            text: '#ffffff',
+            border: 'rgba(255, 255, 255, 0.1)',
+            muted: 'rgb(100, 116, 139)'
+        },
+        radius: '0.5rem',
         bgPattern: 'none'
     },
-    { 
-        id: 'theme-aurora', 
-        label: 'Cosmic', 
-        colors: { brand: '#d8b4fe', bg: '#0f0519' },
-        radius: '1.5rem', 
+    {
+        id: 'theme-aurora',
+        label: 'Cosmic',
+        colors: {
+            brand: '#d8b4fe',
+            bg: '#0f0519',
+            surface: 'rgba(88, 28, 135, 0.8)',
+            text: '#ffffff',
+            border: 'rgba(255, 255, 255, 0.1)',
+            muted: 'rgb(100, 116, 139)'
+        },
+        radius: '1.5rem',
         bgPattern: 'dots'
     },
-    { 
-        id: 'theme-terminal', 
-        label: 'Matrix', 
-        colors: { brand: '#22c55e', bg: '#000000' },
-        radius: '0px', 
+    {
+        id: 'theme-terminal',
+        label: 'Matrix',
+        colors: {
+            brand: '#22c55e',
+            bg: '#000000',
+            surface: 'rgba(34, 197, 94, 0.8)',
+            text: '#ffffff',
+            border: 'rgba(255, 255, 255, 0.1)',
+            muted: 'rgb(100, 116, 139)'
+        },
+        radius: '0px',
         bgPattern: 'grid'
     },
     { 
@@ -59,24 +93,20 @@ const THEMES: Theme[] = [
     }
 ];
 
-// Enhanced Ambient Background Component
+// Unified Ambient Background Component
 const AmbientBackground = ({ themeId }: { themeId: string }) => {
     if (themeId === 'theme-terminal') return null; // Clean black for terminal
 
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-             {/* Enhanced Gradient Blobs with Better Movement */}
-            <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-brand-500/20 rounded-full mix-blend-screen filter blur-[140px] opacity-25 animate-blob"></div>
-            <div className="absolute top-[20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/18 rounded-full mix-blend-screen filter blur-[120px] opacity-25 animate-blob animation-delay-2000"></div>
-            <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-blue-500/15 rounded-full mix-blend-screen filter blur-[160px] opacity-25 animate-blob animation-delay-4000"></div>
-            <div className="absolute top-[50%] left-[50%] w-[400px] h-[400px] bg-cyan-500/12 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-6000"></div>
-            
-            {/* Subtle Grid Overlay for Depth */}
-            <div className="absolute inset-0 opacity-[0.02]" style={{
-                backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                  linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                backgroundSize: '50px 50px'
-            }}></div>
+            {/* Unified Ambient Blobs */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
+            <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-3000"></div>
+
+            {/* Unified Grid Overlay */}
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQwIDBIMHY0MGg0MFoiIGZpbGw9IiMxYTFhMWEiIGZpbGwtb3BhY2l0eT0iMC4wMyIvPgo8L3N2Zz4K')] opacity-30"></div>
         </div>
     );
 };
@@ -109,7 +139,7 @@ const App: React.FC = () => {
     setGridPage,
     setListPage,
     filteredPrompts,
-    pagedGridPrompts,
+    pagedGridPrompts: originalPagedGridPrompts,
     pagedListPrompts,
     favoritesOnly,
     setFavoritesOnly,
@@ -117,11 +147,121 @@ const App: React.FC = () => {
     setRecentOnly
   } = useFilterState(prompts);
 
+  // Initialize storage migration on app startup
+  useEffect(() => {
+    const initMigration = async () => {
+      console.info('🔄 Starting storage migration initialization...');
+
+      try {
+        // First, check if there's data in localStorage
+        const localStorageData = localStorage.getItem('prompts_data_v2');
+        console.info('📦 localStorage data check:', localStorageData ? `${JSON.parse(localStorageData).length} items` : 'empty');
+
+        const migrationStatus = await initializeStorageMigration();
+        console.info('✅ Storage migration initialized:', migrationStatus);
+
+        // Check migration status after initialization
+        const finalStatus = await import('./services/storageService').then(m => m.getMigrationStatus());
+        console.info('🎯 Final migration status:', finalStatus);
+
+        // Log current storage backend
+        console.info('🔧 Current storage backend: hybrid');
+
+        // Force a manual migration check if needed
+        if (!migrationStatus.isCompleted && localStorageData) {
+          console.info('⚡ Attempting manual migration...');
+          const { migrateAllDataToIDB } = await import('./services/storageService');
+          const result = await migrateAllDataToIDB();
+          console.info('🔄 Manual migration result:', result);
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to initialize storage migration:', error);
+      }
+    };
+
+    // Add a debug function to window for manual testing
+    (window as any).debugStorageMigration = async () => {
+      console.info('🔍 Manual debug: Checking storage state...');
+
+      const localData = localStorage.getItem('prompts_data_v2');
+      console.info('📦 localStorage:', localData ? `${JSON.parse(localData).length} items` : 'empty');
+
+      try {
+        const { getMigrationStatus, migrateAllDataToIDB } = await import('./services/storageService');
+        const status = await getMigrationStatus();
+        console.info('📊 Migration status:', status);
+
+        if (!status.isCompleted && localData) {
+          console.info('🚀 Starting manual migration...');
+          const result = await migrateAllDataToIDB();
+          console.info('✅ Migration result:', result);
+
+          // Check final status
+          const finalStatus = await getMigrationStatus();
+          console.info('🎉 Final status:', finalStatus);
+        }
+      } catch (error) {
+        console.error('❌ Debug migration failed:', error);
+      }
+    };
+
+    initMigration();
+  }, []);
+
+  // Model provider/model filters synchronized with useFilterState
+  const [selectedProvider, setSelectedProvider] = useState<string>('All');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+
+  // keep filter state in sync with hook's internal state via localStorage (useFilterState persists)
+
+  // Fetch available models when provider changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        if (selectedProvider === 'All' || selectedProvider === '') {
+          // For "All" provider, combine models from all providers
+          const [geminiModels, groqModels, openaiModels] = await Promise.all([
+            getModelsForProvider('gemini'),
+            getModelsForProvider('groq'),
+            getModelsForProvider('openai')
+          ]);
+          setAvailableModels([...geminiModels, ...groqModels, ...openaiModels]);
+        } else {
+          const models = await getModelsForProvider(selectedProvider as ProviderKey);
+          setAvailableModels(models);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch models for filter:', error);
+        setAvailableModels([]);
+      }
+    };
+
+    fetchModels();
+  }, [selectedProvider]);
+  useEffect(() => {
+    try {
+      const fs = JSON.parse(localStorage.getItem('prompts_filters_v1') || '{}');
+      if (fs.selectedProvider) setSelectedProvider(fs.selectedProvider);
+      if (fs.selectedModel) setSelectedModel(fs.selectedModel);
+    } catch {}
+  }, []);
+
   const { currentThemeId, setCurrentThemeId, currentThemeObj } = useThemeManager(THEMES);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true); // Desktop sidebar state
-  
+
+  // Modify grid prompts based on fullscreen mode (sidebar closed)
+  const pagedGridPrompts = useMemo(() => {
+    if (!isDesktopSidebarOpen) {
+      // In fullscreen mode, only show 5 cards regardless of view
+      return filteredPrompts.slice(0, 5);
+    }
+    return originalPagedGridPrompts;
+  }, [isDesktopSidebarOpen, filteredPrompts, originalPagedGridPrompts]);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
@@ -152,6 +292,9 @@ const App: React.FC = () => {
     onConfirm: () => {},
     type: 'warning'
   });
+
+  // Storage Migration Modal State
+  const [isStorageMigrationOpen, setIsStorageMigrationOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const showToast = useCallback(
@@ -189,41 +332,39 @@ const App: React.FC = () => {
   const handleUpdatePrompt = useCallback((data: PromptFormData) => {
     if (!editingPrompt) return;
     
-    setPrompts(prev => prev.map(p => {
-        if (p.id === editingPrompt.id) {
-            // Smart Version Control Logic
-            const contentChanged = p.content !== data.content;
-            const systemChanged = p.systemInstruction !== data.systemInstruction;
-            const configChanged = JSON.stringify(p.config) !== JSON.stringify(data.config);
-            const examplesChanged = JSON.stringify(p.examples) !== JSON.stringify(data.examples);
+    // Build updated prompt object based on current editingPrompt and incoming data
+    const prevPrompt = editingPrompt;
+    const contentChanged = prevPrompt.content !== data.content;
+    const systemChanged = prevPrompt.systemInstruction !== data.systemInstruction;
+    const configChanged = JSON.stringify(prevPrompt.config) !== JSON.stringify(data.config);
+    const examplesChanged = JSON.stringify(prevPrompt.examples) !== JSON.stringify(data.examples);
 
             const shouldSnapshot = contentChanged || systemChanged || configChanged || examplesChanged;
             
-            let newHistory = p.history || [];
-            
+    let newHistory = prevPrompt.history || [];
             if (shouldSnapshot) {
                 const snapshot: PromptVersion = {
                     timestamp: Date.now(),
-                    content: p.content,
-                    systemInstruction: p.systemInstruction,
-                    examples: p.examples,
-                    config: p.config,
-                    title: p.title
+        content: prevPrompt.content,
+        systemInstruction: prevPrompt.systemInstruction,
+        examples: prevPrompt.examples,
+        config: prevPrompt.config,
+        title: prevPrompt.title
                 };
-                 // Prepend new snapshot, keep last 10 versions
                 newHistory = [snapshot, ...newHistory].slice(0, 10);
             }
 
-            return { 
-                ...p, 
-                ...data, 
+    // Merge only defined fields from incoming data to avoid overwriting existing values with undefined.
+    const sanitizedIncoming = Object.fromEntries(Object.entries(data as any).filter(([_, v]) => v !== undefined));
+    const updatedPrompt: Prompt = {
+      ...prevPrompt,
+      ...(sanitizedIncoming as any),
                 history: newHistory,
                 updatedAt: Date.now()
             };
-        }
-        return p;
-    }));
     
+    setPrompts(prev => prev.map(p => p.id === updatedPrompt.id ? updatedPrompt : p));
+    setEditingPrompt(updatedPrompt);
     showToast('Prompt updated successfully');
   }, [editingPrompt, showToast]);
 
@@ -486,10 +627,10 @@ const App: React.FC = () => {
           }`}
         >
         {/* Enhanced Top Bar - Glassmorphic with Better Depth */}
-        <header className={`flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gray-900/60 backdrop-blur-xl z-10 ${
-          !isDesktopSidebarOpen 
-            ? 'px-6 md:px-12 lg:px-16 py-4 md:py-5 border-b border-white/10 shadow-lg' 
-            : 'px-5 md:px-8 py-4 md:py-5 border-b border-white/10 shadow-lg'
+        <header className={`flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-gray-900/60 backdrop-blur-xl z-10 border-b border-white/10 shadow-lg ${
+          !isDesktopSidebarOpen
+            ? 'p-3'
+            : 'p-4 md:p-6'
         }`}>
             <div className="flex items-center gap-3">
                 <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-400 hover:text-white rounded-lg border border-white/5 bg-white/5">
@@ -596,27 +737,109 @@ const App: React.FC = () => {
         </header>
 
         {/* Content Area */}
-        {currentView === 'dashboard' ? (
-            <Dashboard 
-                prompts={activePrompts}
-                onOpenPrompt={openEditModal}
-                onNavigateToCategory={(cat) => {
-                    setSelectedCategory(cat);
-                    setSelectedTag(undefined);
-                    setCurrentView('grid');
-                }}
-                onNavigateToTag={(tag) => {
-                    setSelectedTag(tag);
-                    setSelectedCategory('All');
-                    setCurrentView('grid');
-                }}
-            />
+        <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth p-6">
+            {currentView === 'dashboard' ? (
+                <Dashboard
+                    prompts={activePrompts}
+                    onOpenPrompt={openEditModal}
+                    onNavigateToCategory={(cat) => {
+                        setSelectedCategory(cat);
+                        setSelectedTag(undefined);
+                        setCurrentView('grid');
+                    }}
+                    onNavigateToTag={(tag) => {
+                        setSelectedTag(tag);
+                        setSelectedCategory('All');
+                        setCurrentView('grid');
+                    }}
+                />
         ) : currentView === 'list' ? (
-            <div className={`flex-1 overflow-y-auto custom-scrollbar scroll-smooth ${
-                isDesktopSidebarOpen ? 'bg-gray-900/40 p-5 md:p-8' : 'bg-transparent p-0'
-            }`}>
-                <div className={`${isDesktopSidebarOpen ? 'max-w-[1500px] mx-auto px-4 md:px-6 lg:px-8' : 'w-full px-4 md:px-6 lg:px-8 xl:px-12'} w-full space-y-4`}>
+            <div className="max-w-full mx-auto space-y-6 px-4">
                 {/* Filter chips */}
+                {(selectedTag || selectedCategory === SPECIAL_CATEGORY_TRASH || favoritesOnly || recentOnly) && (
+                    <div className={`mb-4 animate-fade-in`}>
+                        {selectedCategory === SPECIAL_CATEGORY_TRASH && (
+                            <span className="flex items-center gap-1 bg-red-500/15 text-red-300 border border-red-500/25 px-3 py-1 rounded-full text-sm font-semibold">
+                                <Icons.Trash size={14} /> Trash Bin
+                            </span>
+                        )}
+                        {favoritesOnly && (
+                          <span className="flex items-center gap-1 bg-amber-500/20 text-amber-100 border border-amber-400/40 px-3 py-1 rounded-full text-sm font-semibold">
+                            <Icons.Star size={14} /> Favorites
+                            <button onClick={() => setFavoritesOnly(false)} className="hover:text-amber-200/80"><Icons.Close size={12}/></button>
+                          </span>
+                        )}
+                        {recentOnly && (
+                          <span className="flex items-center gap-1 bg-emerald-500/15 text-emerald-100 border border-emerald-400/30 px-3 py-1 rounded-full text-sm font-semibold">
+                            <Icons.Activity size={14} /> Recent 30d
+                            <button onClick={() => setRecentOnly(false)} className="hover:text-emerald-200/80"><Icons.Close size={12}/></button>
+                          </span>
+                        )}
+                        {selectedTag && (
+                            <span className="flex items-center gap-1 bg-brand-500 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm shadow-brand-500/40">
+                                #{selectedTag} 
+                                <button onClick={() => setSelectedTag(undefined)} className="hover:text-white/80"><Icons.Close size={14}/></button>
+                            </span>
+                        )}
+                    </div>
+                )}
+                {/* Provider / Model filter controls */}
+                <div className="mb-6">
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSelectedProvider(v);
+                      try {
+                        const cur = JSON.parse(localStorage.getItem('prompts_filters_v1') || '{}');
+                        localStorage.setItem('prompts_filters_v1', JSON.stringify({ ...cur, selectedProvider: v }));
+                        window.dispatchEvent(new CustomEvent('prompt_filters_changed'));
+                      } catch {}
+                    }}
+                    className="text-xs bg-gray-950/70 border border-white/10 rounded-lg px-2 py-1 text-white"
+                  >
+                    <option value="All">All Providers</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="groq">Groq / OpenAI OSS</option>
+                  </select>
+                  <SearchableSelect
+                    value={selectedModel}
+                    options={availableModels}
+                    placeholder="Model (search)"
+                    onChange={(v) => {
+                      setSelectedModel(v);
+                      try {
+                        const cur = JSON.parse(localStorage.getItem('prompts_filters_v1') || '{}');
+                        localStorage.setItem('prompts_filters_v1', JSON.stringify({ ...cur, selectedModel: v }));
+                        window.dispatchEvent(new CustomEvent('prompt_filters_changed'));
+                      } catch {}
+                    }}
+                    recent={JSON.parse(localStorage.getItem('recent_models') || '[]')}
+                    clearable
+                  />
+                </div>
+                <ListView 
+                    prompts={pagedListPrompts}
+                    onOpenPrompt={openEditModal}
+                    onToggleFavorite={toggleFavorite}
+                    onDelete={handleDeletePrompt}
+                    onDuplicate={handleDuplicateFromCard}
+                    onRestore={selectedCategory === SPECIAL_CATEGORY_TRASH ? handleRestorePrompt : undefined}
+                    isTrashView={selectedCategory === SPECIAL_CATEGORY_TRASH}
+                />
+                {pagedListPrompts.length < filteredPrompts.length && (
+                  <div className="flex justify-center pt-4 pb-6">
+                    <button
+                      onClick={() => setListPage(prev => prev + 1)}
+                      className="px-4 py-2 text-sm font-semibold rounded-theme bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 shadow-sm transition-all"
+                    >
+                      Load more ({pagedListPrompts.length}/{filteredPrompts.length})
+                    </button>
+                  </div>
+                )}
+            </div>
+        ) : currentView === 'table' ? (
+            <div className="max-w-full mx-auto space-y-6 px-4">
                 {(selectedTag || selectedCategory === SPECIAL_CATEGORY_TRASH || favoritesOnly || recentOnly) && (
                     <div className="flex items-center gap-2 animate-fade-in">
                         {selectedCategory === SPECIAL_CATEGORY_TRASH && (
@@ -638,85 +861,22 @@ const App: React.FC = () => {
                         )}
                         {selectedTag && (
                             <span className="flex items-center gap-1 bg-brand-500 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm shadow-brand-500/40">
-                                #{selectedTag} 
-                                <button onClick={() => setSelectedTag(undefined)} className="hover:text-white/80"><Icons.Close size={14}/></button>
+                                #{selectedTag}
+                                <button onClick={() => setSelectedTag(undefined)} className="hover:text-white/80">
+                                    <Icons.Close size={14} />
+                                </button>
                             </span>
                         )}
                     </div>
                 )}
-                <ListView 
-                    prompts={pagedListPrompts}
+                <KnowledgeTable
+                    prompts={filteredPrompts}
                     onOpenPrompt={openEditModal}
-                    onToggleFavorite={toggleFavorite}
-                    onDelete={handleDeletePrompt}
-                    onDuplicate={handleDuplicateFromCard}
-                    onRestore={selectedCategory === SPECIAL_CATEGORY_TRASH ? handleRestorePrompt : undefined}
-                    isTrashView={selectedCategory === SPECIAL_CATEGORY_TRASH}
                 />
-                {pagedListPrompts.length < filteredPrompts.length && (
-                  <div className="flex justify-center pt-4 pb-6">
-                    <button
-                      onClick={() => setListPage(prev => prev + 1)}
-                      className="px-4 py-2 text-sm font-semibold rounded-theme bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 shadow-sm transition-all"
-                    >
-                      Load more ({pagedListPrompts.length}/{filteredPrompts.length})
-                    </button>
-                  </div>
-                )}
-                </div>
-            </div>
-        ) : currentView === 'table' ? (
-            <div className={`flex-1 overflow-y-auto custom-scrollbar scroll-smooth ${
-                isDesktopSidebarOpen ? 'bg-gray-900/40 p-5 md:p-8' : 'bg-transparent p-0'
-            }`}>
-                <div className={`${isDesktopSidebarOpen ? 'max-w-[1500px] mx-auto px-4 md:px-6 lg:px-8' : 'w-full px-4 md:px-6 lg:px-8 xl:px-12'} w-full space-y-4`}>
-                    {(selectedTag || selectedCategory === SPECIAL_CATEGORY_TRASH || favoritesOnly || recentOnly) && (
-                        <div className="flex items-center gap-2 animate-fade-in">
-                            {selectedCategory === SPECIAL_CATEGORY_TRASH && (
-                                <span className="flex items-center gap-1 bg-red-500/15 text-red-300 border border-red-500/25 px-3 py-1 rounded-full text-sm font-semibold">
-                                    <Icons.Trash size={14} /> Trash Bin
-                                </span>
-                            )}
-                            {favoritesOnly && (
-                              <span className="flex items-center gap-1 bg-amber-500/20 text-amber-100 border border-amber-400/40 px-3 py-1 rounded-full text-sm font-semibold">
-                                <Icons.Star size={14} /> Favorites
-                                <button onClick={() => setFavoritesOnly(false)} className="hover:text-amber-200/80"><Icons.Close size={12}/></button>
-                              </span>
-                            )}
-                            {recentOnly && (
-                              <span className="flex items-center gap-1 bg-emerald-500/15 text-emerald-100 border border-emerald-400/30 px-3 py-1 rounded-full text-sm font-semibold">
-                                <Icons.Activity size={14} /> Recent 30d
-                                <button onClick={() => setRecentOnly(false)} className="hover:text-emerald-200/80"><Icons.Close size={12}/></button>
-                              </span>
-                            )}
-                            {selectedTag && (
-                                <span className="flex items-center gap-1 bg-brand-500 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm shadow-brand-500/40">
-                                    #{selectedTag}
-                                    <button onClick={() => setSelectedTag(undefined)} className="hover:text-white/80">
-                                        <Icons.Close size={14} />
-                                    </button>
-                                </span>
-                            )}
-                        </div>
-                    )}
-                    <KnowledgeTable
-                        prompts={filteredPrompts}
-                        onOpenPrompt={openEditModal}
-                    />
-                </div>
             </div>
         ) : (
-            <div className={`flex-1 overflow-y-auto custom-scrollbar scroll-smooth ${
-                isDesktopSidebarOpen ? 'bg-gray-900/40 p-5 md:p-8' : 'bg-transparent p-0'
-            }`}>
-                <div
-                  className={`${
-                    isDesktopSidebarOpen
-                      ? 'max-w-[1800px] mx-auto pl-3 pr-5 md:pl-4 md:pr-7 lg:pl-6 lg:pr-10 xl:pl-8 xl:pr-12'
-                      : 'w-full px-4 md:px-6 lg:px-8 xl:px-14 2xl:px-20'
-                  } w-full`}
-                >
-                {/* Grid View - Default，强调可扫描性与规则网格 */}
+            <div className="max-w-full mx-auto space-y-6 px-4">
+                {/* Filter chips - outside grid container */}
                 {(selectedTag || selectedCategory === SPECIAL_CATEGORY_TRASH || favoritesOnly || recentOnly) && (
                     <div className="mb-3 flex items-center gap-2 animate-fade-in">
                         {selectedCategory === SPECIAL_CATEGORY_TRASH && (
@@ -738,21 +898,21 @@ const App: React.FC = () => {
                         )}
                         {selectedTag && (
                             <span className="flex items-center gap-1 bg-brand-500 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm shadow-brand-500/40">
-                                #{selectedTag} 
+                                #{selectedTag}
                                 <button onClick={() => setSelectedTag(undefined)} className="hover:text-white/80"><Icons.Close size={14}/></button>
                             </span>
                         )}
                     </div>
                 )}
-                <div
-                  className={`grid pb-16 auto-rows-[minmax(260px,_auto)] ${
-                    isDesktopSidebarOpen
-                      ? 'grid-cols-[repeat(auto-fit,minmax(320px,_1fr))] gap-6 md:gap-6'
-                      : 'grid-cols-[repeat(auto-fit,minmax(320px,_1fr))] gap-5 md:gap-6'
-                  }`}
-                >
+
+                {/* Grid View - Multi-card layout for better space utilization */}
+                <div className="grid gap-6 justify-center pb-16" style={{
+                    gridTemplateColumns: isDesktopSidebarOpen
+                      ? 'repeat(auto-fit, minmax(280px, 1fr))'
+                      : 'repeat(auto-fit, minmax(280px, 1fr))'
+                  }}>
                     {filteredPrompts.length === 0 ? (
-                        <div className="col-span-full flex flex-col items-center justify-center h-80 text-gray-500 animate-slide-up-fade">
+                        <div className={emptyStateClass}>
                             <div className="w-20 h-20 rounded-full bg-white/8 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6 shadow-lg transform hover:scale-110 transition-transform duration-300">
                                 {selectedCategory === 'Trash' ? <Icons.Trash size={28} className="opacity-50" /> : <Icons.Search size={28} className="opacity-50" />}
                             </div>
@@ -789,7 +949,7 @@ const App: React.FC = () => {
                         })
                     )}
                 </div>
-                {pagedGridPrompts.length < filteredPrompts.length && (
+                {pagedGridPrompts.length < filteredPrompts.length && isDesktopSidebarOpen && (
                   <div className="flex justify-center pt-2 pb-6">
                     <button
                       onClick={() => setGridPage(prev => prev + 1)}
@@ -799,25 +959,27 @@ const App: React.FC = () => {
                     </button>
                   </div>
                 )}
-                </div>
             </div>
         )}
+        </div>
 
-        <PromptModal 
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSave={editingPrompt ? handleUpdatePrompt : handleCreatePrompt}
-            onDuplicate={handleDuplicatePrompt}
-            onNotify={showToast}
-            initialData={editingPrompt}
-            allCategories={[...STANDARD_CATEGORIES, ...customCategories]}
-            allAvailableTags={allTags}
-            onNext={() => navigatePrompt('next')}
-            onPrev={() => navigatePrompt('prev')}
-            hasNext={!!nextPrompt}
-            hasPrev={!!prevPrompt}
-            currentTheme={currentThemeObj}
-        />
+        <ErrorBoundary>
+            <PromptModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={editingPrompt ? handleUpdatePrompt : handleCreatePrompt}
+                onDuplicate={handleDuplicatePrompt}
+                onNotify={showToast}
+                initialData={editingPrompt}
+                allCategories={[...STANDARD_CATEGORIES, ...customCategories]}
+                allAvailableTags={allTags}
+                onNext={() => navigatePrompt('next')}
+                onPrev={() => navigatePrompt('prev')}
+                hasNext={!!nextPrompt}
+                hasPrev={!!prevPrompt}
+                currentTheme={currentThemeObj}
+            />
+        </ErrorBoundary>
         
         <CommandPalette 
             isOpen={isPaletteOpen}
@@ -838,6 +1000,7 @@ const App: React.FC = () => {
                 if (action === 'create') openNewModal();
                 if (action === 'import') handleImportClick();
                 if (action === 'export') handleExport();
+                if (action === 'storage-migration') setIsStorageMigrationOpen(true);
             }}
         />
 
@@ -855,6 +1018,11 @@ const App: React.FC = () => {
             type={confirmDialog.type}
             onConfirm={confirmDialog.onConfirm}
             onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        />
+
+        <StorageMigrationModal
+            isOpen={isStorageMigrationOpen}
+            onClose={() => setIsStorageMigrationOpen(false)}
         />
         </div>
       </main>

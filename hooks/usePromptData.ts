@@ -14,22 +14,42 @@ export const usePromptData = () => {
 
   // Load initial data
   useEffect(() => {
-    setPrompts(getPrompts());
-    setCustomCategories(getCustomCategories());
+    const loadData = async () => {
+      try {
+        const [loadedPrompts, loadedCategories] = await Promise.all([
+          getPrompts(),
+          getCustomCategories()
+        ]);
+        setPrompts(loadedPrompts);
+        setCustomCategories(loadedCategories);
+      } catch (error) {
+        console.error('Failed to load initial data:', error);
+      }
+    };
+
+    loadData();
   }, []);
 
   // Persist prompts with debounce to avoid excessive writes
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      savePrompts(prompts);
+    const timeoutId = setTimeout(async () => {
+      try {
+        await savePrompts(prompts);
+      } catch (error) {
+        console.warn('Failed to save prompts:', error);
+      }
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [prompts]);
 
   // Persist custom categories with debounce
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      saveCustomCategories(customCategories);
+    const timeoutId = setTimeout(async () => {
+      try {
+        await saveCustomCategories(customCategories);
+      } catch (error) {
+        console.warn('Failed to save custom categories:', error);
+      }
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [customCategories]);

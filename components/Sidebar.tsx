@@ -65,7 +65,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({
 
   const sidebarContent = (
     <div className="flex flex-col h-full" data-sidebar-root>
-      <div className="px-6 mb-6 pt-8 flex items-center justify-between">
+      {/* Header */}
+      <div className="px-6 py-8 flex items-center justify-between">
         <h1 className="text-xl font-black tracking-tight flex items-center gap-3">
            <div className="bg-gradient-to-br from-brand-500 to-purple-600 p-2 rounded-lg shadow-[0_0_20px_rgba(var(--c-brand),0.5)] transform hover:scale-110 hover:rotate-6 transition-all duration-300 cursor-pointer relative group/logo overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/logo:translate-x-[100%] transition-transform duration-700"></div>
@@ -76,21 +77,22 @@ const SidebarComponent: React.FC<SidebarProps> = ({
            </span>
         </h1>
         {/* Mobile Close Button */}
-        <button 
-            onClick={onCloseMobile} 
+        <button
+            onClick={onCloseMobile}
             className="md:hidden p-2 text-gray-400 hover:text-white"
         >
             <Icons.Close size={20} />
         </button>
       </div>
 
-      <div className="px-3 flex-1 overflow-y-auto space-y-1 custom-scrollbar">
-        {/* View Switcher - Compact Segmented Control */}
-        <div className="mb-6 px-1">
-            <div className="flex p-1 bg-white/5 rounded-lg border border-white/5">
+      {/* Scrollable Content */}
+      <div className="px-4 flex-1 overflow-y-auto custom-scrollbar">
+        {/* View Switcher */}
+        <div className="mb-6">
+            <div className="flex p-1 bg-white/5 rounded-lg border border-white/5 gap-1">
                 <button
                     onClick={() => { onViewChange('dashboard'); onCloseMobile(); }}
-                    className={`flex-1 flex items-center justify-center py-2 rounded-md transition-all duration-300 transform hover:scale-105 ${
+                    className={`flex-1 flex items-center justify-center py-2 px-1 rounded-md transition-all duration-300 transform hover:scale-105 ${
                         currentView === 'dashboard' ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30 shadow-lg shadow-brand-500/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                     }`}
                     title="Dashboard"
@@ -99,7 +101,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                 </button>
                 <button
                     onClick={() => { onViewChange('grid'); onCloseMobile(); }}
-                    className={`flex-1 flex items-center justify-center py-2 rounded-md transition-all duration-300 transform hover:scale-105 ${
+                    className={`flex-1 flex items-center justify-center py-2 px-1 rounded-md transition-all duration-300 transform hover:scale-105 ${
                         currentView === 'grid' ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30 shadow-lg shadow-brand-500/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                     }`}
                     title="Grid View"
@@ -108,7 +110,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                 </button>
                 <button
                     onClick={() => { onViewChange('table'); onCloseMobile(); }}
-                    className={`flex-1 hidden lg:flex items-center justify-center py-2 rounded-md transition-all duration-300 transform hover:scale-105 ${
+                    className={`flex-1 hidden lg:flex items-center justify-center py-2 px-1 rounded-md transition-all duration-300 transform hover:scale-105 ${
                         currentView === 'table' ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30 shadow-lg shadow-brand-500/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                     }`}
                     title="Knowledge Table"
@@ -117,21 +119,21 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                 </button>
                 <button
                     onClick={() => { onToggleDesktop(); onCloseMobile(); }}
-                    className="flex-1 flex items-center justify-center py-2 rounded-md transition-all duration-300 transform hover:scale-105 text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                    className="flex-1 flex items-center justify-center py-2 px-1 rounded-md transition-all duration-300 transform hover:scale-105 text-gray-500 hover:text-gray-300 hover:bg-white/5"
                     title={isDesktopOpen ? "Hide Sidebar" : "Show Sidebar"}
                 >
                     <Icons.Menu size={16} />
                 </button>
             </div>
-            <div className="mt-2 flex items-center justify-center text-xs text-gray-500 font-mono">
+            <div className="mt-3 flex items-center justify-center text-xs text-gray-500 font-mono">
                 Total Prompts: <span className="ml-1 text-gray-400 font-semibold">{counts['All'] || 0}</span>
             </div>
         </div>
 
         {/* Categories Section */}
-        <div className="text-xs font-semibold text-gray-600 uppercase tracking-widest px-3 mb-2 flex items-center justify-between">
-            <span>Library</span>
-            <button 
+        <div className="mb-4 flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-600 uppercase tracking-widest">Library</span>
+            <button
                 onClick={() => setIsAddingCategory(true)}
                 className="hover:text-brand-500 transition-colors p-1 hover:bg-white/5 rounded"
                 title="Add Category"
@@ -140,11 +142,12 @@ const SidebarComponent: React.FC<SidebarProps> = ({
             </button>
         </div>
         
+        {/* Add Category Form */}
         {isAddingCategory && (
-            <form onSubmit={handleCreateCategory} className="px-3 mb-2 animate-fade-in">
-                <input 
+            <form onSubmit={handleCreateCategory} className="mb-3 animate-fade-in">
+                <input
                     autoFocus
-                    type="text" 
+                    type="text"
                     value={newCategoryName}
                     onChange={e => setNewCategoryName(e.target.value)}
                     onBlur={() => !newCategoryName && setIsAddingCategory(false)}
@@ -154,59 +157,62 @@ const SidebarComponent: React.FC<SidebarProps> = ({
             </form>
         )}
 
-        {allCategories.map((cat) => {
-            const Icon = getIconForCategory(cat);
-            const isSelected = (currentView === 'grid' || currentView === 'list') && selectedCategory === cat && !selectedTag;
-            const count = counts[cat] || 0;
-            const isCustom = !(STANDARD_CATEGORIES as readonly string[]).includes(cat);
+        {/* Categories List */}
+        <div className="space-y-1">
+            {allCategories.map((cat) => {
+                const Icon = getIconForCategory(cat);
+                const isSelected = (currentView === 'grid' || currentView === 'list') && selectedCategory === cat && !selectedTag;
+                const count = counts[cat] || 0;
+                const isCustom = !(STANDARD_CATEGORIES as readonly string[]).includes(cat);
 
-            return (
-            <div key={cat} className="relative group">
-                <button
-                    onClick={() => {
-                        if (currentView === 'dashboard') onViewChange('grid');
-                        onSelectCategory(cat);
-                        onSelectTag(undefined); // Clear tag selection
-                        onCloseMobile();
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-theme text-sm font-medium transition-all duration-500 relative overflow-hidden transform hover:scale-[1.02] ${
-                        isSelected 
-                        ? 'text-white shadow-[0_0_25px_rgba(var(--c-brand),0.25)] border border-brand-500/30 bg-brand-500/10' 
-                        : 'text-gray-400 hover:text-gray-100 hover:bg-white/8 border border-transparent hover:border-white/10'
-                    }`}
-                >
-                    {isSelected && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-brand-500/15 via-brand-500/10 to-transparent opacity-100"></div>
-                    )}
-                    <div className="flex items-center gap-3 relative z-10">
-                        <Icon size={18} className={`transition-all duration-500 transform ${isSelected ? 'text-brand-500 drop-shadow-[0_0_12px_rgba(var(--c-brand),0.6)] scale-110' : 'text-gray-500 group-hover:text-gray-300 group-hover:scale-105'}`} />
-                        <span className="truncate max-w-[120px] font-semibold">{cat}</span>
-                    </div>
-                    {count > 0 && (
-                    <span className={`text-xs px-2.5 py-1 rounded-full relative z-10 transition-all duration-300 font-semibold ${isSelected ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/30 transform scale-110' : 'bg-white/8 text-gray-500 hover:bg-white/12'}`}>
-                        {count}
-                    </span>
-                    )}
-                </button>
-                
-                {isCustom && onDeleteCategory && (
+                return (
+                <div key={cat} className="relative group">
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteCategory(cat);
+                        onClick={() => {
+                            if (currentView === 'dashboard') onViewChange('grid');
+                            onSelectCategory(cat);
+                            onSelectTag(undefined); // Clear tag selection
+                            onCloseMobile();
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-white/10 rounded opacity-0 group-hover:opacity-100 transition-all z-20"
-                        title="Delete Category"
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-theme text-sm font-medium transition-all duration-500 relative overflow-hidden transform hover:scale-[1.02] ${
+                            isSelected
+                            ? 'text-white shadow-[0_0_25px_rgba(var(--c-brand),0.25)] border border-brand-500/30 bg-brand-500/10'
+                            : 'text-gray-400 hover:text-gray-100 hover:bg-white/8 border border-transparent hover:border-white/10'
+                        }`}
                     >
-                        <Icons.Close size={12} />
+                        {isSelected && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-brand-500/15 via-brand-500/10 to-transparent opacity-100"></div>
+                        )}
+                        <div className="flex items-center gap-3 relative z-10">
+                            <Icon size={18} className={`transition-all duration-500 transform ${isSelected ? 'text-brand-500 drop-shadow-[0_0_12px_rgba(var(--c-brand),0.6)] scale-110' : 'text-gray-500 group-hover:text-gray-300 group-hover:scale-105'}`} />
+                            <span className="truncate max-w-[120px] font-semibold">{cat}</span>
+                        </div>
+                        {count > 0 && (
+                        <span className={`text-xs px-2.5 py-1 rounded-full relative z-10 transition-all duration-300 font-semibold ${isSelected ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/30 transform scale-110' : 'bg-white/8 text-gray-500 hover:bg-white/12'}`}>
+                            {count}
+                        </span>
+                        )}
                     </button>
-                )}
-            </div>
-            );
-        })}
+
+                    {isCustom && onDeleteCategory && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteCategory(cat);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-white/10 rounded opacity-0 group-hover:opacity-100 transition-all z-20"
+                            title="Delete Category"
+                        >
+                            <Icons.Close size={12} />
+                        </button>
+                    )}
+                </div>
+                );
+            })}
+        </div>
 
         {/* Trash Bin */}
-        <div className="mt-4 pt-4 border-t border-white/5">
+        <div className="mt-6 pt-4 border-t border-white/5">
              <button
                 onClick={() => {
                     if (currentView === 'dashboard') onViewChange('grid');
@@ -216,7 +222,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-theme text-sm font-medium transition-all duration-300 group relative overflow-hidden
                 ${selectedCategory === 'Trash'
-                    ? 'text-red-400 bg-red-500/10 border border-red-500/20' 
+                    ? 'text-red-400 bg-red-500/10 border border-red-500/20'
                     : 'text-gray-500 hover:text-red-400 hover:bg-white/5 border border-transparent'
                 }`}
             >
@@ -232,19 +238,19 @@ const SidebarComponent: React.FC<SidebarProps> = ({
             </button>
         </div>
 
-        {/* Trending Tags Section - Collapsible */}
+        {/* Trending Tags Section */}
         {topTags.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-white/5 animate-slide-up-fade">
-                <button 
+            <div className="mt-6 pt-4 border-t border-white/5 animate-slide-up-fade space-y-3">
+                <button
                     onClick={() => setIsTagsOpen(!isTagsOpen)}
-                    className="w-full text-xs font-semibold text-gray-600 uppercase tracking-widest px-3 mb-3 flex items-center justify-between hover:text-gray-400 transition-colors"
+                    className="w-full text-xs font-semibold text-gray-600 uppercase tracking-widest flex items-center justify-between hover:text-gray-400 transition-colors"
                 >
                     <span className="flex items-center gap-2"><Icons.Tag size={12} /> Trending Tags</span>
                     {isTagsOpen ? <Icons.ChevronDown size={12} /> : <Icons.ChevronRight size={12} />}
                 </button>
-                
+
                 {isTagsOpen && (
-                    <div className="px-3 flex flex-wrap gap-2 animate-fade-in">
+                    <div className="flex flex-wrap gap-2 animate-fade-in">
                         {topTags.slice(0, 10).map(([tag, count]) => {
                             const isTagSelected = selectedTag === tag;
                             return (
@@ -256,8 +262,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                                         onCloseMobile();
                                     }}
                                     className={`text-xs px-2.5 py-1 rounded-full border transition-all duration-300 flex items-center gap-1.5 ${
-                                        isTagSelected 
-                                        ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20' 
+                                        isTagSelected
+                                        ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20'
                                         : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:text-gray-200'
                                     }`}
                                 >

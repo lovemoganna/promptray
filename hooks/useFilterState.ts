@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Prompt } from '../types';
 import { PAGE_SIZE, PromptView, SortBy, SortOrder, SPECIAL_CATEGORY_TRASH } from '../constants';
-import { getFilterState, saveFilterState } from '../services/storageService';
+import { getFilterState, saveFilterState, FilterState } from '../services/storageService';
 
 export const useFilterState = (prompts: Prompt[]) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -15,20 +15,32 @@ export const useFilterState = (prompts: Prompt[]) => {
   const [listPage, setListPage] = useState(1);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [recentOnly, setRecentOnly] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string>('All');
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
 
   // Restore filter state
   useEffect(() => {
-    const savedFilters = getFilterState();
-    if (savedFilters) {
-      setSelectedCategory(savedFilters.selectedCategory);
-      setSelectedTag(savedFilters.selectedTag);
-      setSearchQuery(savedFilters.searchQuery);
-      setCurrentView(savedFilters.currentView);
-      if (savedFilters.sortBy) setSortBy(savedFilters.sortBy);
-      if (savedFilters.sortOrder) setSortOrder(savedFilters.sortOrder);
-      if (typeof savedFilters.favoritesOnly === 'boolean') setFavoritesOnly(savedFilters.favoritesOnly);
-      if (typeof savedFilters.recentOnly === 'boolean') setRecentOnly(savedFilters.recentOnly);
-    }
+    const loadFilterState = async () => {
+      try {
+        const savedFilters = await getFilterState();
+        if (savedFilters) {
+          setSelectedCategory(savedFilters.selectedCategory);
+          setSelectedTag(savedFilters.selectedTag);
+          setSearchQuery(savedFilters.searchQuery);
+          setCurrentView(savedFilters.currentView);
+          if (savedFilters.sortBy) setSortBy(savedFilters.sortBy);
+          if (savedFilters.sortOrder) setSortOrder(savedFilters.sortOrder);
+          if (typeof savedFilters.favoritesOnly === 'boolean') setFavoritesOnly(savedFilters.favoritesOnly);
+          if (typeof savedFilters.recentOnly === 'boolean') setRecentOnly(savedFilters.recentOnly);
+          if (savedFilters.selectedProvider) setSelectedProvider(savedFilters.selectedProvider);
+          if (savedFilters.selectedModel) setSelectedModel(savedFilters.selectedModel);
+        }
+      } catch (error) {
+        console.warn('Failed to load filter state:', error);
+      }
+    };
+
+    loadFilterState();
   }, []);
 
   // Debounce search query (300ms)
@@ -41,21 +53,53 @@ export const useFilterState = (prompts: Prompt[]) => {
 
   // Persist filter state
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      saveFilterState({
-        selectedCategory,
-        selectedTag,
-        searchQuery,
-        currentView,
-        sortBy,
-        sortOrder,
-        favoritesOnly,
-        recentOnly
-      });
+    const timeoutId = setTimeout(async () => {
+      try {
+        await saveFilterState({
+          selectedCategory,
+          selectedTag,
+          searchQuery,
+          currentView,
+          sortBy,
+          sortOrder,
+          favoritesOnly,
+          recentOnly
+        });
+      } catch (error) {
+        console.warn('Failed to save filter state:', error);
+      }
     }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [selectedCategory, selectedTag, searchQuery, currentView, sortBy, sortOrder, favoritesOnly, recentOnly]);
+  
+  // Persist provider/model selection
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      try {
+        const existing = await getFilterState() || {
+          selectedCategory: 'All',
+          searchQuery: '',
+          currentView: 'grid' as const,
+          sortBy: 'createdAt' as const,
+          sortOrder: 'desc' as const,
+          favoritesOnly: false,
+          recentOnly: false,
+          selectedProvider: 'All',
+          selectedModel: undefined
+        };
+        const merged: FilterState = {
+          ...existing,
+          selectedProvider,
+          selectedModel
+        };
+        await saveFilterState(merged);
+      } catch (error) {
+        console.warn('Failed to save provider/model filter state:', error);
+      }
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedProvider, selectedModel]);
 
   // Reset pagination when filters or sort change
   useEffect(() => {
@@ -73,6 +117,8 @@ export const useFilterState = (prompts: Prompt[]) => {
 
       // 2. Standard Filters
       const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+      const matchesProvider = (selectedProvider === 'All' || !selectedProvider) ? true : ((p.config && p.config.modelProvider === selectedProvider) || false);
+      const matchesModel = !selectedModel || (p.config && (p.config.modelName === selectedModel || (p.config.model || '').includes(selectedModel)));
       const matchesTag = !selectedTag || p.tags.includes(selectedTag);
       const matchesFavorite = !favoritesOnly || p.isFavorite;
       const matchesRecent = !recentOnly || ((p.updatedAt ?? p.createdAt) >= (Date.now() - 30 * 24 * 60 * 60 * 1000));
@@ -100,7 +146,7 @@ export const useFilterState = (prompts: Prompt[]) => {
         (p.customLabels && p.customLabels.some(t => t.toLowerCase().includes(query))) ||
         (p.recommendedModels && p.recommendedModels.some(m => m.toLowerCase().includes(query)));
 
-      return matchesCategory && matchesTag && matchesSearch && matchesFavorite && matchesRecent;
+      return matchesCategory && matchesTag && matchesSearch && matchesFavorite && matchesRecent && matchesProvider && matchesModel;
     });
 
     // Apply sorting

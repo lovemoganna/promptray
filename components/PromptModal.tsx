@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Prompt, PromptFormData, PromptConfig, PromptVersion, SavedRun, Theme } from '../types';
 import { Icons } from './Icons';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -12,6 +12,7 @@ import { PromptEditTab } from './promptModal/PromptEditTab';
 import { usePromptMetaAndTags } from './promptModal/usePromptMetaAndTags';
 import { usePromptExamplesLogic } from './promptModal/usePromptExamplesLogic';
 import { runGeminiPromptStream, generateSampleVariables } from '../services/geminiService';
+import { ModelSelector } from './ModelSelector';
 
 interface PromptModalProps {
   isOpen: boolean;
@@ -79,6 +80,40 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
   const [isTagging, setIsTagging] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isAutoMeta, setIsAutoMeta] = useState(false);
+  const [modelProvider, setModelProvider] = useState<string>(() => {
+    try {
+      return localStorage.getItem('prompt_model_provider') || 'auto';
+    } catch {
+      return 'auto';
+    }
+  });
+  const [modelName, setModelName] = useState<string>(() => {
+    try {
+      return localStorage.getItem('prompt_model_name') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [lastRuntime, setLastRuntime] = useState<{ provider?: string; model?: string }>(() => {
+    return { provider: (localStorage.getItem('prompt_model_provider') || undefined) as any, model: (localStorage.getItem('prompt_model_name') || undefined) as any };
+  });
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const d = e?.detail || {};
+      if (d.provider) setModelProvider(d.provider);
+      if (d.modelName) setModelName(d.modelName);
+    };
+    window.addEventListener('prompt_model_change', handler);
+    const rtHandler = (e: any) => {
+      const d = e?.detail || {};
+      if (d.provider || d.model) {
+        setLastRuntime({ provider: d.provider || modelProvider, model: d.model || modelName });
+      }
+    };
+    window.addEventListener('prompt_runtime_used', rtHandler);
+    return () => window.removeEventListener('prompt_model_change', handler);
+  }, []);
 
   type TabKey = 'preview' | 'edit' | 'examples' | 'test' | 'history';
   const [activeTab, setActiveTab] = useState<TabKey>('preview');
@@ -86,11 +121,41 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
   const [shareMode, setShareMode] = useState(false); // Zen mode for screenshots
 
   const [copiedPreview, setCopiedPreview] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const formAutoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(false);
+  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
+  const hasInitializedTabRef = useRef(false); // 防止自动保存时重置标签页
 
   const [showSnippets, setShowSnippets] = useState(false);
 
   const [detectedVariables, setDetectedVariables] = useState<string[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+
+  // 状态快照机制：用于异常恢复和数据一致性保障
+  const [lastStableSnapshot, setLastStableSnapshot] = useState<PromptFormData | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // 安全的保存函数，确保使用最新的状态
+  const safeSave = useCallback((additionalData?: any) => {
+    try {
+      const dataToSave = {
+        ...(formData as any),
+        id: initialData?.id,
+        savedRuns,
+        lastVariableValues: variableValues,
+        ...additionalData
+      };
+      onSave(dataToSave);
+
+      // 成功保存后创建快照，用于异常恢复
+      setLastStableSnapshot({ ...formData });
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('保存失败:', error);
+      onNotify?.('保存失败，请稍后重试', 'error');
+    }
+  }, [formData, initialData?.id, savedRuns, variableValues, onSave, onNotify]);
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [autoFillingIndex, setAutoFillingIndex] = useState<number | null>(null);
 
@@ -141,6 +206,16 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
     setIsTagging,
     setIsTranslating,
   });
+
+  // Keep a global snapshot of current formData for debug helpers (used by PromptMetaPanel)
+  useEffect(() => {
+    try {
+      (window as any).__lastFormDataSnapshot = formData;
+    } catch (e) {
+      // ignore in non-browser envs
+    }
+  }, [formData]);
+
 
   const {
     handleAddExample,
@@ -205,6 +280,8 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
         recommendedModels: initialData.recommendedModels || [],
         usageNotes: initialData.usageNotes || '',
         cautions: initialData.cautions || '',
+        // 修复：加载extracted字段，确保智能补全结果不会丢失
+        extracted: initialData.extracted || undefined,
         isFavorite: initialData.isFavorite,
         status: initialData.status || 'active',
         config: initialData.config || {
@@ -219,7 +296,11 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
       setSavedRuns(Array.isArray(initialData.savedRuns) ? initialData.savedRuns : []);
       setVariableValues(initialData.lastVariableValues || {});
       prevContentRef.current = initialData.content;
-      setActiveTab('preview');
+      // 只在首次初始化时设置默认标签页，避免自动保存时重置用户选择
+      if (!hasInitializedTabRef.current) {
+        setActiveTab('preview');
+        hasInitializedTabRef.current = true;
+      }
     } else {
       setFormData({
         title: '',
@@ -255,28 +336,124 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
       setSavedRuns([]);
       setVariableValues({});
       prevContentRef.current = '';
-      setActiveTab('edit');
+      // 只在首次初始化时设置默认标签页，避免自动保存时重置用户选择
+      if (!hasInitializedTabRef.current) {
+        setActiveTab('edit');
+        hasInitializedTabRef.current = true;
+      }
     }
     setTestResult(null);
     setPreviewMode('raw');
     setShareMode(false);
   }, [initialData, isOpen]);
 
-  // 自动保存 formData（包括 examples）的 debounce 机制
+  // 当modal关闭时重置标签页初始化状态，为下次打开做准备
+  useEffect(() => {
+    if (!isOpen) {
+      hasInitializedTabRef.current = false;
+    }
+  }, [isOpen]);
+
+  // 检测未保存更改和异常恢复机制
+  useEffect(() => {
+    if (lastStableSnapshot && isOpen) {
+      // 深度比较当前状态和最后稳定快照
+      const hasChanges = JSON.stringify({
+        title: formData.title,
+        description: formData.description,
+        content: formData.content,
+        systemInstruction: formData.systemInstruction,
+        examples: formData.examples,
+        extracted: formData.extracted,
+        tags: formData.tags,
+        category: formData.category,
+        outputType: formData.outputType,
+        applicationScene: formData.applicationScene,
+        technicalTags: formData.technicalTags,
+        styleTags: formData.styleTags,
+        customLabels: formData.customLabels,
+        usageNotes: formData.usageNotes,
+        cautions: formData.cautions,
+        recommendedModels: formData.recommendedModels,
+        config: formData.config,
+      }) !== JSON.stringify({
+        title: lastStableSnapshot.title,
+        description: lastStableSnapshot.description,
+        content: lastStableSnapshot.content,
+        systemInstruction: lastStableSnapshot.systemInstruction,
+        examples: lastStableSnapshot.examples,
+        extracted: lastStableSnapshot.extracted,
+        tags: lastStableSnapshot.tags,
+        category: lastStableSnapshot.category,
+        outputType: lastStableSnapshot.outputType,
+        applicationScene: lastStableSnapshot.applicationScene,
+        technicalTags: lastStableSnapshot.technicalTags,
+        styleTags: lastStableSnapshot.styleTags,
+        customLabels: lastStableSnapshot.customLabels,
+        usageNotes: lastStableSnapshot.usageNotes,
+        cautions: lastStableSnapshot.cautions,
+        recommendedModels: lastStableSnapshot.recommendedModels,
+        config: lastStableSnapshot.config,
+      });
+
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [formData, lastStableSnapshot, isOpen]);
+
+  // 异常检测和自动恢复机制
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 检测可能的异常情况：如果formData为空或不完整，可能发生了状态丢失
+    const isFormDataValid = formData && formData.title !== undefined && formData.content !== undefined;
+
+    if (!isFormDataValid && lastStableSnapshot && initialData) {
+      console.warn('检测到状态异常，尝试从快照恢复');
+      // 从快照恢复，但保留一些可能的用户输入
+      setFormData(prev => ({
+        ...lastStableSnapshot!,
+        // 保留当前可能正在编辑的内容（如果有的话）
+        title: prev.title || lastStableSnapshot!.title,
+        content: prev.content || lastStableSnapshot!.content,
+      }));
+      onNotify?.('检测到数据异常，已从上次保存状态恢复', 'info');
+    }
+  }, [formData, lastStableSnapshot, initialData, isOpen, onNotify]);
+
+  // 自动保存 formData（包括 examples）的 debounce 机制，增加竞态条件防护
   const autoSaveFormDataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     // 只有在编辑现有 prompt 时才自动保存
-    if (!initialData || !isOpen) return;
+    if (!initialData || !isOpen || !isAutoSaveEnabled) return;
+
+    // 如果没有未保存的更改，不需要自动保存
+    if (!hasUnsavedChanges) return;
 
     // 清除之前的定时器
     if (autoSaveFormDataTimeoutRef.current) {
       clearTimeout(autoSaveFormDataTimeoutRef.current);
     }
 
-    // 延迟 1.5 秒自动保存，避免频繁保存（静默保存，不显示通知）
+    // 延迟 2 秒自动保存，避免频繁保存和竞态条件
     autoSaveFormDataTimeoutRef.current = setTimeout(() => {
-      onSave({ ...formData, savedRuns, lastVariableValues: variableValues });
-    }, 1500);
+      try {
+        // 再次检查是否有未保存的更改（防止在延迟期间已被手动保存）
+        if (hasUnsavedChanges) {
+          const dataToSave = {
+            ...(formData as any),
+            id: initialData?.id,
+            savedRuns,
+            lastVariableValues: variableValues
+          };
+          onSave(dataToSave);
+          // 自动保存成功后更新快照
+          setLastStableSnapshot({ ...formData });
+          setHasUnsavedChanges(false);
+        }
+      } catch (error) {
+        console.error('自动保存失败:', error);
+      }
+    }, 2000); // 增加延迟时间，避免竞态条件
 
     return () => {
       if (autoSaveFormDataTimeoutRef.current) {
@@ -288,10 +465,13 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
     formData.content,
     formData.systemInstruction,
     JSON.stringify(formData.config),
+    JSON.stringify(formData.extracted || {}), // ensure metadata changes trigger autosave
     isOpen,
     initialData?.id, // 只依赖 id，避免对象引用变化
     JSON.stringify(savedRuns),
-    JSON.stringify(variableValues)
+    JSON.stringify(variableValues),
+    hasUnsavedChanges, // 只有在有未保存更改时才自动保存
+    isAutoSaveEnabled // 只有启用自动保存时才工作
   ]);
 
   // Cleanup: Cancel any ongoing requests when modal closes
@@ -315,7 +495,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
       );
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        onSave({ ...formData, savedRuns, lastVariableValues: variableValues });
+        safeSave();
         onClose();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -368,6 +548,45 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
       prevContentRef.current = formData.content;
     }
   }, [formData.content]);
+
+  // Autosave: debounce saves to onSave without closing the modal
+  useEffect(() => {
+    if (!isOpen) return;
+    // skip initial mount
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+
+    // do not autosave if title is empty
+    if (!formData.title || formData.title.trim() === '') return;
+    if (!isAutoSaveEnabled) return;
+
+    if (formAutoSaveTimeoutRef.current) clearTimeout(formAutoSaveTimeoutRef.current);
+    formAutoSaveTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSaving(true);
+      try {
+        const dataToSave = {
+          ...(formData as any),
+          id: initialData?.id,
+          savedRuns,
+          lastVariableValues: variableValues
+        };
+        await onSave(dataToSave);
+      } catch (e) {
+        console.error('Auto-save failed', e);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (formAutoSaveTimeoutRef.current) {
+        clearTimeout(formAutoSaveTimeoutRef.current);
+        formAutoSaveTimeoutRef.current = null;
+      }
+    };
+  }, [formData, savedRuns, variableValues, isOpen, onSave]);
 
   // Variable Detection with validation
   useEffect(() => {
@@ -504,7 +723,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
                     : r
                 );
                 setSavedRuns(updatedRuns);
-                onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+                safeSave({ savedRuns: updatedRuns });
               }
             }, 500);
           }
@@ -554,7 +773,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
           };
           setSavedRuns(prev => {
             const updatedRuns = [autoRun, ...prev.filter(r => !r.id.startsWith('auto-'))].slice(0, 30);
-            onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+            safeSave({ savedRuns: updatedRuns });
             return updatedRuns;
           });
         }
@@ -582,14 +801,14 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
     };
     const updatedRuns = [newRun, ...savedRuns].slice(0, 50); // 增加到50个
     setSavedRuns(updatedRuns);
-    onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+    safeSave({ savedRuns: updatedRuns });
     if (onNotify) onNotify(`Test case "${newRun.name}" saved`, "success");
   };
 
   const handleRateRun = (runId: string, rating: 'good' | 'bad') => {
     const updatedRuns = savedRuns.map(r => r.id === runId ? { ...r, rating } : r);
     setSavedRuns(updatedRuns);
-    onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+    safeSave({ savedRuns: updatedRuns });
   };
 
   const handleLoadRun = (run: SavedRun) => {
@@ -672,7 +891,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
             ? { ...r, partialOutput: continuedOutput, checkpoint: String(continuedOutput.length) }
             : r
         );
-        onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+        safeSave({ savedRuns: updatedRuns });
         return updatedRuns;
       });
 
@@ -692,7 +911,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
   const handleDeleteRun = (runId: string) => {
     const updatedRuns = savedRuns.filter(r => r.id !== runId);
     setSavedRuns(updatedRuns);
-    onSave({ ...formData, savedRuns: updatedRuns, lastVariableValues: variableValues });
+    safeSave({ savedRuns: updatedRuns });
   };
 
   const handleMagicFill = async () => {
@@ -774,7 +993,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-2 sm:p-3 md:p-6 animate-fade-in transition-all overflow-hidden" data-modal-overlay>
       <div className="w-full max-w-[96vw] lg:max-w-6xl 2xl:max-w-[1500px] rounded-2xl bg-gray-950/95 border border-white/10 shadow-xl flex flex-col h-[92vh] md:h-[88vh] relative overflow-hidden animate-slide-up-fade text-sm sm:text-[15px] lg:text-base" data-modal-panel>
         {/* Header：简化为纯色条，减少视觉干扰 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 sm:py-5 border-b border-white/10 shrink-0 bg-gray-900/90 z-10 relative" data-modal-header>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 sm:px-8 md:px-12 lg:px-8 py-6 md:py-8 border-b border-white/10 shrink-0 bg-gray-900/90 z-10 relative" data-modal-header>
           <div className="flex items-center gap-3 sm:gap-4 max-w-full">
             <div className="flex items-center gap-1">
               <button
@@ -804,86 +1023,130 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-            {/* Enhanced Tools Group */}
-            <div className="flex items-center bg-white/8 border border-white/15 rounded-lg p-0.5 backdrop-blur-sm">
+          {/* 重新设计的工具栏 - 更协调的视觉层次 */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
+
+            {/* 状态指示器组 - 更突出但优雅 */}
+            {hasUnsavedChanges && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-full text-xs text-amber-200 font-medium shadow-lg backdrop-blur-sm">
+                <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse shadow-amber-400/50 shadow-[0_0_8px]"></div>
+                <span className="text-amber-100">未保存</span>
+              </div>
+            )}
+
+            {/* 辅助工具组 - 统一的玻璃态设计 */}
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg">
               <button
                 onClick={() => setShareMode(true)}
-                className="p-2 text-gray-300 hover:text-white rounded-md hover:bg-white/12 transition-all duration-200 transform hover:scale-110 active:scale-95"
-                title="View Card (Share Mode)"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-300 hover:text-white rounded-lg hover:bg-white/10 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                title="分享卡片"
               >
-                <Icons.Image size={18} />
+                <Icons.Image size={16} />
+                <span className="hidden sm:inline">分享</span>
               </button>
-              <div className="w-[1px] h-5 bg-white/15 mx-0.5"></div>
+              <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
               <button
                 onClick={() => setShowSnippets(true)}
-                className="p-2 text-gray-300 hover:text-white rounded-md hover:bg-white/12 transition-all duration-200 transform hover:scale-110 active:scale-95"
-                title="Generate Code Snippets"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-300 hover:text-white rounded-lg hover:bg-white/10 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                title="生成代码片段"
               >
-                <Icons.Code size={18} />
+                <Icons.Code size={16} />
+                <span className="hidden sm:inline">代码</span>
               </button>
             </div>
 
-            {/* Enhanced Tab Navigation */}
-            <div className="flex items-center gap-1 bg-gray-950/70 rounded-lg p-1 border border-white/15 shadow-inner backdrop-blur-sm flex-wrap">
+            {/* 主导航标签组 - 更现代的设计 */}
+            <div className="flex items-center bg-gray-900/50 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg overflow-hidden">
               <button
                 onClick={() => setActiveTab('preview')}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${activeTab === 'preview'
-                  ? 'bg-white/15 text-white shadow-sm border border-white/10'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  activeTab === 'preview'
+                    ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-white shadow-blue-500/25 shadow-[0_0_15px_rgba(59,130,246,0.15)] border border-blue-500/30'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                   }`}
-                title="Preview"
+                title="预览模式"
               >
-                <Icons.Eye size={16} /> <span className="hidden sm:inline">Preview</span>
+                <Icons.Eye size={16} />
+                <span className="hidden sm:inline">预览</span>
               </button>
               <button
                 onClick={() => setActiveTab('edit')}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${activeTab === 'edit'
-                  ? 'bg-white/15 text-white shadow-sm border border-white/10'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  activeTab === 'edit'
+                    ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-white shadow-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.15)] border border-emerald-500/30'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                   }`}
-                title="Edit"
+                title="编辑模式"
               >
-                <Icons.Edit size={16} /> <span className="hidden sm:inline">Edit</span>
+                <Icons.Edit size={16} />
+                <span className="hidden sm:inline">编辑</span>
               </button>
               <button
                 onClick={() => setActiveTab('examples')}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${activeTab === 'examples'
-                  ? 'bg-white/15 text-white shadow-sm border border-white/10'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  activeTab === 'examples'
+                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white shadow-purple-500/25 shadow-[0_0_15px_rgba(147,51,234,0.15)] border border-purple-500/30'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                   }`}
-                title="Examples"
+                title="示例管理"
               >
-                <Icons.List size={16} /> <span className="hidden sm:inline">Examples</span>
+                <Icons.List size={16} />
+                <span className="hidden sm:inline">示例</span>
               </button>
               <button
                 onClick={() => setActiveTab('test')}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${activeTab === 'test'
-                  ? 'bg-brand-500 text-white shadow-[0_0_20px_rgba(var(--c-brand),0.4)]'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  activeTab === 'test'
+                    ? 'bg-gradient-to-r from-brand-500/20 to-brand-600/20 text-white shadow-brand-500/30 shadow-[0_0_20px_rgba(var(--c-brand),0.3)] border border-brand-500/40'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                   }`}
-                title="Run"
+                title="测试运行"
               >
-                <Icons.Run size={16} /> <span className="hidden sm:inline">Run</span>
+                <Icons.Run size={16} />
+                <span className="hidden sm:inline">运行</span>
               </button>
               {initialData && (
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${activeTab === 'history'
-                    ? 'bg-white/15 text-white shadow-sm border border-white/10'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                    }`}
-                  title="Version History"
+                  className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                    activeTab === 'history'
+                      ? 'bg-gradient-to-r from-gray-500/20 to-slate-500/20 text-white shadow-gray-500/25 shadow-[0_0_15px_rgba(107,114,128,0.15)] border border-gray-500/30'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`}
+                  title="版本历史"
                 >
                   <Icons.History size={16} />
+                  <span className="hidden sm:inline">历史</span>
                 </button>
               )}
             </div>
+            {/* 模型选择器组 - 统一的玻璃态设计 */}
+            <div className="flex items-center gap-1.5">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg">
+                <ModelSelector
+                  value={{ provider: modelProvider, model: modelName }}
+                  onChange={(value) => {
+                    setModelProvider(value.provider);
+                    setModelName(value.model);
+                    try {
+                      localStorage.setItem('prompt_model_provider', value.provider);
+                      localStorage.setItem('prompt_model_name', value.model);
+                    } catch {}
+                  }}
+                  className="text-sm"
+                  lastRuntime={lastRuntime}
+                />
+              </div>
+            </div>
+
+            {/* 关闭按钮 - 更现代的设计 */}
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-all duration-200 bg-white/8 hover:bg-white/12 p-2 rounded-lg border border-transparent hover:border-white/15 transform hover:scale-110 active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-xl hover:bg-red-500/10 transition-all duration-200 transform hover:scale-105 active:scale-95 border border-transparent hover:border-red-500/20 backdrop-blur-sm"
+              title="关闭对话框"
             >
-              <Icons.Close size={20} />
+              <Icons.Close size={18} />
+              <span className="hidden sm:inline">关闭</span>
             </button>
           </div>
         </div>
@@ -989,9 +1252,12 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
                   onDuplicate={initialData ? handleDuplicate : undefined}
                   onCancel={onClose}
                   onSaveClick={() => {
-                    onSave({ ...formData, savedRuns, lastVariableValues: variableValues });
+        safeSave({ config: { ...(formData.config || {}), modelProvider, modelName } });
                     onClose();
                   }}
+                  isAutoSaving={isAutoSaving}
+                  isAutoSaveEnabled={isAutoSaveEnabled}
+                  onToggleAutoSave={() => setIsAutoSaveEnabled(v => !v)}
                 />
               )}
             </div>

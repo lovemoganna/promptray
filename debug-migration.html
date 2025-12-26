@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexedDB 迁移调试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.success:hover {
+            background: #218838;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IndexedDB 迁移调试工具</h1>
+        <p>用于诊断和修复 Prompt Ray 的存储迁移问题</p>
+
+        <div class="section">
+            <h3>1. 检查存储状态</h3>
+            <button onclick="checkStorageStatus()">检查存储状态</button>
+            <div id="storage-status" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>2. 检查迁移状态</h3>
+            <button onclick="checkMigrationStatus()">检查迁移状态</button>
+            <div id="migration-status" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>3. 强制执行迁移</h3>
+            <button onclick="forceMigration()" class="success">执行完整迁移</button>
+            <button onclick="clearMigrationStatus()" class="danger">清除迁移状态</button>
+            <div id="migration-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. 检查 IndexedDB 内容</h3>
+            <button onclick="checkIndexedDB()">检查 IndexedDB</button>
+            <button onclick="clearIndexedDB()" class="danger">清空 IndexedDB</button>
+            <div id="idb-content" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>5. 完整诊断</h3>
+            <button onclick="fullDiagnostic()">运行完整诊断</button>
+            <div id="diagnostic-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟 storageService 的核心功能
+        const STORAGE_KEY = 'prompts_data_v2';
+        const MIGRATION_STATUS_KEY = 'migration_status_v1';
+
+        async function checkStorageStatus() {
+            const result = document.getElementById('storage-status');
+            result.innerHTML = '检查中...';
+
+            try {
+                const localStorageData = localStorage.getItem(STORAGE_KEY);
+                const categories = localStorage.getItem('prompts_categories_v1');
+                const theme = localStorage.getItem('prompts_theme_v1');
+                const filters = localStorage.getItem('prompts_filters_v1');
+
+                let output = '📦 LocalStorage 状态:\n';
+                output += `提示词数据: ${localStorageData ? `${JSON.parse(localStorageData).length} 条` : '空'}\n`;
+                output += `分类数据: ${categories || '空'}\n`;
+                output += `主题设置: ${theme || '空'}\n`;
+                output += `筛选器状态: ${filters || '空'}\n`;
+
+                result.innerHTML = output;
+            } catch (error) {
+                result.innerHTML = `❌ 检查失败: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function checkMigrationStatus() {
+            const result = document.getElementById('migration-status');
+            result.innerHTML = '检查中...';
+
+            try {
+                const status = localStorage.getItem(MIGRATION_STATUS_KEY);
+                if (status) {
+                    const parsed = JSON.parse(status);
+                    result.innerHTML = `📊 迁移状态: ${JSON.stringify(parsed, null, 2)}`;
+                } else {
+                    result.innerHTML = '📊 迁移状态: 未找到 (将自动创建)';
+                }
+            } catch (error) {
+                result.innerHTML = `❌ 检查失败: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function forceMigration() {
+            const result = document.getElementById('migration-result');
+            result.innerHTML = '迁移中...';
+
+            try {
+                // 检查是否有数据需要迁移
+                const localStorageData = localStorage.getItem(STORAGE_KEY);
+                if (!localStorageData) {
+                    result.innerHTML = '❌ LocalStorage 中没有数据，无需迁移';
+                    result.className = 'result error';
+                    return;
+                }
+
+                const prompts = JSON.parse(localStorageData);
+                console.log(`找到 ${prompts.length} 条提示词数据`);
+
+                // 打开 IndexedDB
+                const db = await openIndexedDB();
+                console.log('IndexedDB 已打开');
+
+                // 清空现有数据
+                await clearAllIDBData(db);
+
+                // 迁移提示词数据
+                await migratePrompts(db, prompts);
+
+                // 迁移其他数据
+                await migrateCategories(db);
+                await migrateTheme(db);
+                await migrateFilters(db);
+
+                // 更新迁移状态
+                const migrationStatus = {
+                    isCompleted: true,
+                    version: '2.0.0',
+                    migratedItems: prompts.length,
+                    errors: [],
+                    lastMigrationAt: Date.now()
+                };
+
+                localStorage.setItem(MIGRATION_STATUS_KEY, JSON.stringify(migrationStatus));
+
+                result.innerHTML = `✅ 迁移成功!\n迁移了 ${prompts.length} 条数据\n时间: ${new Date().toLocaleString()}`;
+                result.className = 'result success';
+
+                console.log('迁移完成:', migrationStatus);
+
+            } catch (error) {
+                result.innerHTML = `❌ 迁移失败: ${error.message}`;
+                result.className = 'result error';
+                console.error('迁移错误:', error);
+            }
+        }
+
+        async function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('PromptRayDB', 2);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+
+                    // 创建对象存储
+                    if (!db.objectStoreNames.contains('prompts')) {
+                        const promptsStore = db.createObjectStore('prompts', { keyPath: 'id' });
+                        promptsStore.createIndex('category', 'category', { unique: false });
+                        promptsStore.createIndex('isFavorite', 'isFavorite', { unique: false });
+                        promptsStore.createIndex('createdAt', 'createdAt', { unique: false });
+                        promptsStore.createIndex('status', 'status', { unique: false });
+                        promptsStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+                    }
+
+                    if (!db.objectStoreNames.contains('categories')) {
+                        db.createObjectStore('categories', { keyPath: 'id' });
+                    }
+
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        async function clearAllIDBData(db) {
+            const stores = ['prompts', 'categories', 'settings'];
+            for (const storeName of stores) {
+                if (db.objectStoreNames.contains(storeName)) {
+                    await new Promise((resolve, reject) => {
+                        const transaction = db.transaction(storeName, 'readwrite');
+                        const request = transaction.objectStore(storeName).clear();
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+            }
+        }
+
+        async function migratePrompts(db, prompts) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('prompts', 'readwrite');
+                const store = transaction.objectStore('prompts');
+
+                let completed = 0;
+                const total = prompts.length;
+
+                if (total === 0) {
+                    resolve();
+                    return;
+                }
+
+                prompts.forEach(prompt => {
+                    const request = store.add(prompt);
+                    request.onsuccess = () => {
+                        completed++;
+                        if (completed === total) resolve();
+                    };
+                    request.onerror = () => {
+                        console.error('Failed to migrate prompt:', prompt.id);
+                        completed++;
+                        if (completed === total) resolve(); // Continue even on error
+                    };
+                });
+            });
+        }
+
+        async function migrateCategories(db) {
+            const categories = localStorage.getItem('prompts_categories_v1');
+            if (!categories) return;
+
+            const categoryList = JSON.parse(categories);
+            if (!Array.isArray(categoryList)) return;
+
+            const transaction = db.transaction('categories', 'readwrite');
+            const store = transaction.objectStore('categories');
+
+            for (let i = 0; i < categoryList.length; i++) {
+                const category = {
+                    id: `category_${categoryList[i]}`,
+                    name: categoryList[i],
+                    createdAt: Date.now()
+                };
+
+                await new Promise((resolve, reject) => {
+                    const request = store.add(category);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => resolve(); // Continue on error
+                });
+            }
+        }
+
+        async function migrateTheme(db) {
+            const theme = localStorage.getItem('prompts_theme_v1');
+            if (!theme) return;
+
+            const transaction = db.transaction('settings', 'readwrite');
+            const store = transaction.objectStore('settings');
+
+            await new Promise((resolve, reject) => {
+                const request = store.put({ key: 'user_theme', value: theme, updatedAt: Date.now() });
+                request.onsuccess = () => resolve();
+                request.onerror = () => resolve();
+            });
+        }
+
+        async function migrateFilters(db) {
+            const filters = localStorage.getItem('prompts_filters_v1');
+            if (!filters) return;
+
+            const transaction = db.transaction('settings', 'readwrite');
+            const store = transaction.objectStore('settings');
+
+            await new Promise((resolve, reject) => {
+                const request = store.put({ key: 'filter_state', value: JSON.parse(filters), updatedAt: Date.now() });
+                request.onsuccess = () => resolve();
+                request.onerror = () => resolve();
+            });
+        }
+
+        async function clearMigrationStatus() {
+            localStorage.removeItem(MIGRATION_STATUS_KEY);
+            document.getElementById('migration-status').innerHTML = '✅ 迁移状态已清除';
+        }
+
+        async function checkIndexedDB() {
+            const result = document.getElementById('idb-content');
+            result.innerHTML = '检查中...';
+
+            try {
+                const db = await openIndexedDB();
+
+                let output = '🔍 IndexedDB 内容:\n\n';
+
+                // 检查 prompts
+                const prompts = await getAllFromStore(db, 'prompts');
+                output += `提示词数据: ${prompts.length} 条\n`;
+
+                // 检查 categories
+                const categories = await getAllFromStore(db, 'categories');
+                output += `分类数据: ${categories.length} 条\n`;
+
+                // 检查 settings
+                const settings = await getAllFromStore(db, 'settings');
+                output += `设置数据: ${settings.length} 条\n`;
+
+                if (prompts.length > 0) {
+                    output += '\n📝 示例提示词:\n';
+                    const sample = prompts.slice(0, 3);
+                    sample.forEach(p => {
+                        output += `- ${p.title} (${p.category})\n`;
+                    });
+                }
+
+                result.innerHTML = output;
+                db.close();
+
+            } catch (error) {
+                result.innerHTML = `❌ 检查失败: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function getAllFromStore(db, storeName) {
+            return new Promise((resolve, reject) => {
+                if (!db.objectStoreNames.contains(storeName)) {
+                    resolve([]);
+                    return;
+                }
+
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function clearIndexedDB() {
+            if (!confirm('确定要清空 IndexedDB 中的所有数据吗？此操作不可逆！')) {
+                return;
+            }
+
+            try {
+                const db = await openIndexedDB();
+                await clearAllIDBData(db);
+                db.close();
+
+                document.getElementById('idb-content').innerHTML = '✅ IndexedDB 已清空';
+            } catch (error) {
+                document.getElementById('idb-content').innerHTML = `❌ 清空失败: ${error.message}`;
+                document.getElementById('idb-content').className = 'result error';
+            }
+        }
+
+        async function fullDiagnostic() {
+            const result = document.getElementById('diagnostic-result');
+            result.innerHTML = '运行完整诊断...';
+
+            try {
+                let output = '🔬 完整诊断报告\n';
+                output += '=' .repeat(50) + '\n\n';
+
+                // 检查 localStorage
+                const localData = localStorage.getItem(STORAGE_KEY);
+                output += `📦 LocalStorage:\n`;
+                output += `  提示词数据: ${localData ? `${JSON.parse(localData).length} 条` : '空'}\n`;
+                output += `  分类数据: ${localStorage.getItem('prompts_categories_v1') || '空'}\n`;
+                output += `  主题设置: ${localStorage.getItem('prompts_theme_v1') || '空'}\n\n`;
+
+                // 检查迁移状态
+                const migrationStatus = localStorage.getItem(MIGRATION_STATUS_KEY);
+                output += `📊 迁移状态: ${migrationStatus ? JSON.parse(migrationStatus).isCompleted ? '已完成' : '进行中' : '未开始'}\n\n`;
+
+                // 检查 IndexedDB
+                const db = await openIndexedDB();
+                const prompts = await getAllFromStore(db, 'prompts');
+                const categories = await getAllFromStore(db, 'categories');
+                const settings = await getAllFromStore(db, 'settings');
+
+                output += `🗄️  IndexedDB:\n`;
+                output += `  提示词数据: ${prompts.length} 条\n`;
+                output += `  分类数据: ${categories.length} 条\n`;
+                output += `  设置数据: ${settings.length} 条\n\n`;
+
+                // 诊断结果
+                output += `🎯 诊断结果:\n`;
+                if (localData && JSON.parse(localData).length > 0 && prompts.length === 0) {
+                    output += `  ❌ 问题发现: LocalStorage 有数据但 IndexedDB 为空\n`;
+                    output += `  💡 建议: 点击"执行完整迁移"按钮\n`;
+                } else if (prompts.length > 0) {
+                    output += `  ✅ 迁移成功: 数据已正确迁移到 IndexedDB\n`;
+                } else {
+                    output += `  ℹ️  无数据: 没有找到需要迁移的数据\n`;
+                }
+
+                db.close();
+                result.innerHTML = output;
+
+            } catch (error) {
+                result.innerHTML = `❌ 诊断失败: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动运行基本检查
+        window.onload = function() {
+            checkStorageStatus();
+            checkMigrationStatus();
+        };
+    </script>
+</body>
+</html>

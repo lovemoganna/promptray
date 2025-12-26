@@ -50,7 +50,9 @@ import {
   ArrowUp,
   ArrowDown,
   Table,
-  ChevronUp
+  ChevronUp,
+  Settings,
+  Play
 } from 'lucide-react';
 
 export const Icons = {
@@ -84,6 +86,7 @@ export const Icons = {
   Trend: TrendingUp,
   Tag,
   Activity,
+  Play,
   Command,
   System: Laptop,
   Dark: Moon,
@@ -94,6 +97,7 @@ export const Icons = {
   History,
   Restore: RotateCcw,
   Menu,
+  Settings,
   Trash: Trash2,
   Archive,
   Magic: Wand2,

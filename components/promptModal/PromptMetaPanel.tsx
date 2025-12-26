@@ -1,205 +1,551 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PromptFormData } from '../../types';
-import { Icons } from '../Icons';
-import Tags from '../ui/Tags';
+import { colors } from '../ui/styleTokens';
+import { debugEnvironmentVariables } from '../../services/groqConfig';
 
 interface PromptMetaPanelProps {
   formData: PromptFormData;
   onFormDataChange: (data: PromptFormData) => void;
   getTokenCount: (text: string) => number;
-  onAutoMetadata: () => void;
+  onAutoMetadata?: (options?: { target?: string; provider?: string }) => Promise<any> | any;
   onAutoTag?: () => void;
-  isAutoMeta?: boolean;
   isTagging?: boolean;
   tagSuggestions?: string[];
+  tagInput?: string;
+  onTagInputChange?: (value: string) => void;
+  onTagKeyDown?: (e: React.KeyboardEvent) => void;
+  onAddTagFromSuggestion?: (tag: string) => void;
+  allCategories?: string[];
 }
 
-const compactSelectClass = "w-full bg-gray-950/80 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 transition-all appearance-none cursor-pointer backdrop-blur-sm";
+// The panel intentionally avoids leading examples or prescriptive helper text
+// that could bias users. It exposes explicit fields and an opt-in auto-complete
+// control so models may assist without pre-populating or nudging user content.
+export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
+  const { formData, onFormDataChange, onAutoMetadata } = props;
+  const [isAutoMetaLoading, setIsAutoMetaLoading] = React.useState(false);
+  const [autoTarget, setAutoTarget] = React.useState<string>('all');
 
-export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = ({
-  formData,
-  onFormDataChange,
-  getTokenCount,
-  onAutoMetadata,
-  onAutoTag,
-  isAutoMeta = false,
-  isTagging = false,
-  tagSuggestions = [],
-}) => {
-  const tokenCount = getTokenCount(formData.content || '');
-  const complexityLabel = tokenCount > 800 ? '高 (复杂)' : tokenCount > 300 ? '中 (适中)' : '低 (简单)';
-  const displayModel = (formData.config && (formData.config as any).model) || (formData.recommendedModels && (formData.recommendedModels[0] || '未指定'));
-  const primaryValue = formData.category || (formData.tags && formData.tags[0]) || '未分类';
+  // 展开/折叠状态管理
+  const [expandedFields, setExpandedFields] = React.useState<Record<string, boolean>>({});
+  // 移除本地状态，使用全局 ModelSelector
+
+  const updateField = (key: keyof typeof formData, value: any) => {
+    onFormDataChange({ ...formData, [key]: value } as any);
+  };
+
+  const updateExtracted = (partial: Partial<NonNullable<typeof formData.extracted>>) => {
+    onFormDataChange({
+      ...formData,
+      extracted: { ...(formData.extracted || {}), ...partial },
+    } as any);
+  };
+
+  const updateConstraintsFromTextarea = (value: string) => {
+    const lines = value.split('\n').map(l => l.trim()).filter(Boolean);
+    updateExtracted({ constraints: lines });
+  };
+
+  // 辅助函数
+  const getLineCount = (text: string): number => {
+    if (!text) return 0;
+    return text.split('\n').length;
+  };
+
+
+  const getMinHeight = (lineHeight: number = 20): string => {
+    return `${lineHeight * 3}px`; // 至少3行的高度作为最小高度
+  };
+
+  const isLongContent = (text: string) => {
+    if (!text) return false;
+    return text.length > 1000 || text.split('\n').length > 20;
+  };
+
+  const toggleFieldExpansion = (fieldKey: string) => {
+    setExpandedFields(prev => ({
+      ...prev,
+      [fieldKey]: !prev[fieldKey]
+    }));
+  };
+
+
+
+  // evaluation is stored under extracted (editable textarea). previous tag-based UI removed.
 
   return (
-    <aside className="lg:col-span-4 space-y-6">
-      <div className="bg-gray-900/50 border border-white/10 rounded-lg p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">元数据</h3>
-        <div className="grid grid-cols-1 gap-3">
-          {/* Quick overview: model / tokens / complexity */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">快速概览</label>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between text-sm text-gray-200">
-                <span className="text-xs text-gray-400">推荐模型</span>
-                <span className="font-medium">{displayModel}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-200">
-                <span className="text-xs text-gray-400">估算 Tokens</span>
-                <span className="font-medium">{tokenCount} tokens</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-200">
-                <span className="text-xs text-gray-400">复杂度</span>
-                <span className="font-medium">{complexityLabel}</span>
-              </div>
-              <p className="text-[11px] text-gray-500">此概览基于提示词正文的字数/结构自动推断，帮助快速判断执行成本与难度。</p>
-            </div>
-          </div>
+    <aside className="space-y-4 pt-6 p-6">
+      <div className="flex items-center justify-between gap-4 min-h-[56px]">
+        <h3 className={`text-sm font-semibold ${colors.text.secondary} uppercase tracking-wider`}>元数据</h3>
+        <div className="flex items-center gap-2">
+          {onAutoMetadata && (
+            <>
+              <select
+                value={autoTarget}
+                onChange={(e) => setAutoTarget(e.target.value)}
+                aria-label="选择要自动补全的字段（可选）"
+                className="text-xs bg-gray-950/70 border border-white/10 rounded-lg px-2 py-1 text-white"
+              >
+                <option value="">选择字段</option>
+                <option value="all">全部</option>
+                <option value="intent">意图</option>
+                <option value="role">角色</option>
+                <option value="audience">受众</option>
+                <option value="action">作用</option>
+                <option value="quality">质量目标</option>
+                <option value="constraints">边界</option>
+                <option value="examples">示例</option>
+                <option value="format">格式</option>
+                <option value="version">版本</option>
+                <option value="evaluation">评估</option>
+              </select>
+              <button
+                onClick={async () => {
+                  if (!onAutoMetadata || !autoTarget) return;
+                  setIsAutoMetaLoading(true);
+                  try {
+                    // If user requested "全部", delegate full processing to parent hook which already
+                    // performs model-based generation and sets formData for all related fields.
+                    if (autoTarget === 'all') {
+                      await onAutoMetadata({ target: 'all' } as any);
+                      return;
+                    }
 
-          {/* Value & Use Cases */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">价值维度 / 场景</label>
-            <input type="text" value={primaryValue} readOnly className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200" />
-            <p className="text-[11px] text-gray-500 mt-1">从类别与标签推断出的主要用途或价值方向，便于搜索与聚类。</p>
-          </div>
+                    const res = await onAutoMetadata({ target: autoTarget } as any);
+                    if (!res) return;
 
-          {/* Usage & Cautions with helper text */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">使用说明
-              <span title="简短说明如何使用此提示词：必要输入格式、常见参数与示例（1-3 句）" className="ml-2 text-[11px] text-gray-400 cursor-help">?</span>
-            </label>
-            <textarea value={formData.usageNotes || ''} onChange={e => onFormDataChange({ ...formData, usageNotes: e.target.value })} className="w-full h-20 bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200" placeholder="这个提示词怎么用、有什么技巧？" />
-            <p className="text-[11px] text-gray-500 mt-1">简要写出最佳实践：输入格式、常用参数、场景示例。</p>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">注意事项 / 风险
-              <span title="列出可能导致错误或不安全输出的情形，以及建议的缓解方法（1-2 句）" className="ml-2 text-[11px] text-gray-400 cursor-help">?</span>
-            </label>
-            <textarea value={formData.cautions || ''} onChange={e => onFormDataChange({ ...formData, cautions: e.target.value })} className="w-full h-20 bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200" placeholder="常见错误、边界条件、避坑提示" />
-            <p className="text-[11px] text-gray-500 mt-1">列出可能造成错误或不安全输出的条件，以及如何缓解。</p>
-          </div>
-
-          {/* Prompt-perspective: intent / audience / constraints (extracted) */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">提示词视角
-              <span title="从提示词内容中提取的意图、目标受众与约束（可由自动生成器填充，也可手动编辑）" className="ml-2 text-[11px] text-gray-400 cursor-help">?</span>
-            </label>
-            <div className="space-y-2">
-              <div>
-                <label htmlFor="extracted-intent" className="text-[11px] text-gray-400">意图（Intent）</label>
-                <textarea
-                  id="extracted-intent"
-                  value={(formData.extracted && formData.extracted.intent) || ''}
-                  onChange={e => onFormDataChange({ ...formData, extracted: { ...(formData.extracted || {}), intent: e.target.value } })}
-                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200"
-                  placeholder="简短描述此提示词的主要目的，例如：生成教学示例、写作风格改写等"
-                />
-              </div>
-              <div>
-                <label htmlFor="extracted-audience" className="text-[11px] text-gray-400">目标受众（Audience）</label>
-                <input
-                  id="extracted-audience"
-                  type="text"
-                  value={(formData.extracted && formData.extracted.audience) || ''}
-                  onChange={e => onFormDataChange({ ...formData, extracted: { ...(formData.extracted || {}), audience: e.target.value } })}
-                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                  placeholder="例如：初学者、行业专家、产品经理"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] text-gray-400">约束 / 限制（Constraints）</label>
-                <div className="mt-2">
-                  <Tags
-                    tags={formData.extracted && formData.extracted.constraints ? formData.extracted.constraints : []}
-                    tagInput={''}
-                    suggestions={tagSuggestions || []}
-                    onAddTag={(tag) => {
-                      if (!tag) return;
-                      const prev = formData.extracted && formData.extracted.constraints ? formData.extracted.constraints : [];
-                      const next = Array.from(new Set([...prev, tag]));
-                      onFormDataChange({ ...formData, extracted: { ...(formData.extracted || {}), constraints: next } });
-                    }}
-                    onRemoveTag={(tag) => {
-                      const prev = formData.extracted && formData.extracted.constraints ? formData.extracted.constraints : [];
-                      onFormDataChange({ ...formData, extracted: { ...(formData.extracted || {}), constraints: prev.filter(t => t !== tag) } });
-                    }}
-                    onInputChange={() => {}}
-                    onInputKeyDown={(e) => {
-                      // Allow Enter to add tag when user types into the internal input; Tags component handles inputKeyDown externally via props.
-                      // No-op here because Tags manages input value via parent; we use onAddTag above to add programmatically.
-                    }}
-                    onSuggestionClick={(s) => {
-                      if (!s) return;
-                      const prev = formData.extracted && formData.extracted.constraints ? formData.extracted.constraints : [];
-                      const next = Array.from(new Set([...prev, s]));
-                      onFormDataChange({ ...formData, extracted: { ...(formData.extracted || {}), constraints: next } });
-                    }}
-                    compact={true}
-                  />
-                </div>
-                <p className="text-[11px] text-gray-500 mt-1">使用标签式输入以便快速添加/删除约束，建议短句或关键词。</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Preview media + source */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">预览媒体 URL
-              <span title="填写外链图片/视频/音频以在此处预览，仅用于演示与分享，请保证链接可访问。" className="ml-2 text-[11px] text-gray-400 cursor-help">?</span>
-            </label>
-            <input type="text" value={formData.previewMediaUrl || ''} onChange={e => onFormDataChange({ ...formData, previewMediaUrl: e.target.value })} className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="示例图片/视频/音频链接" />
-            {formData.previewMediaUrl && (
-              <div className="mt-3">
-                {/* Simple heuristic preview */}
-                {(() => {
-                  const url = formData.previewMediaUrl || '';
-                  const lower = url.toLowerCase();
-                  if (lower.match(/\.(mp4|webm|ogg)(\?|$)/)) {
-                    return (
-                      <video src={url} controls className="w-full rounded-lg border border-white/10 bg-black" />
-                    );
+                    // handle several return shapes conservatively; prefer explicit mapping for specific targets
+                    if (typeof res === 'string') {
+                      if (autoTarget === 'intent') updateExtracted({ intent: res });
+                      else if (autoTarget === 'role') updateExtracted({ role: res } as any);
+                      else if (autoTarget === 'audience') updateExtracted({ audience: res } as any);
+                      else if (autoTarget === 'action') updateField('usageNotes', res);
+                      else if (autoTarget === 'quality') updateField('cautions', res);
+                      else if (autoTarget === 'format') updateField('outputType', res as any);
+                      else if (autoTarget === 'version') updateField('description', res);
+                      else if (autoTarget === 'evaluation') updateExtracted({ ...(formData.extracted || {}), evaluation: res } as any);
+                    } else if (res.extracted) {
+                      updateExtracted(res.extracted);
+                    } else if (res.examples && Array.isArray(res.examples)) {
+                      // Update examples using current formData
+                      onFormDataChange({ ...formData, examples: res.examples } as any);
+                    }
+                  } catch (error) {
+                    console.error('智能补全失败:', error);
+                    // Don't rethrow - let error boundary handle it
+                  } finally {
+                    setIsAutoMetaLoading(false);
                   }
-                  if (lower.match(/\.(mp3|wav|m4a|aac)(\?|$)/)) {
-                    return (
-                      <audio src={url} controls className="w-full rounded-lg" />
-                    );
-                  }
-                  // default: try image
-                  return <img src={url} alt="preview" className="w-full rounded-lg object-contain border border-white/10" />;
-                })()}
-                <div className="flex gap-2 mt-2">
-                  <a href={formData.previewMediaUrl} target="_blank" rel="noreferrer" className="text-xs text-gray-300 hover:text-white">在新标签中打开</a>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <input type="text" value={formData.source || ''} onChange={e => onFormDataChange({ ...formData, source: e.target.value })} placeholder="来源 (如: Tutorial、Blog)" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-            <input type="text" value={formData.sourceAuthor || ''} onChange={e => onFormDataChange({ ...formData, sourceAuthor: e.target.value })} placeholder="作者" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-          </div>
-          <div>
-            <input type="text" value={formData.sourceUrl || ''} onChange={e => onFormDataChange({ ...formData, sourceUrl: e.target.value })} placeholder="来源链接" className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center justify-between mt-1">
-            <button onClick={onAutoMetadata} disabled={isAutoMeta} className="text-xs font-medium bg-white/10 text-gray-200 px-2.5 py-1 rounded-lg border border-white/15 hover:bg-white/15 disabled:opacity-50 transition-all">
-              {isAutoMeta ? '生成中...' : <><Icons.Magic size={12} /> 自动生成元信息</>}
-            </button>
-            {onAutoTag && (
-              <button onClick={onAutoTag} disabled={isTagging} className="text-xs font-medium bg-white/10 text-gray-200 px-2.5 py-1 rounded-lg border border-white/15 hover:bg-white/15 disabled:opacity-50 transition-all">
-                {isTagging ? '标记中...' : '自动标记'}
+                }}
+                disabled={isAutoMetaLoading || !autoTarget}
+                className="text-xs font-medium bg-white/10 text-gray-200 px-2.5 py-1 rounded-lg border border-white/15 hover:bg-white/15 transition-all disabled:opacity-50"
+              >
+                {isAutoMetaLoading ? '补全中...' : '智能补全'}
               </button>
-            )}
+              <button
+                onClick={() => debugEnvironmentVariables()}
+                className="text-xs font-medium bg-blue-500/20 text-blue-200 px-2.5 py-1 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition-all"
+                title="调试环境变量"
+              >
+                调试API
+              </button>
+            </>
+          )}
+          {/* auto-tag button intentionally removed per design: tagging remains possible via parent controls */}
+        </div>
+      </div>
+
+      {/* Metadata form: three groups (语义定义 / 质量控制 / 工程与管理) */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* 语义定义 */}
+        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+            {/* 语义定义标题占据整行 */}
+            <div className="md:col-span-2">
+              <div className="p-0 bg-transparent transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                    语义定义
+                  </h4>
+                </div>
+              </div>
+            </div>
+
+            {/* Intent and Role side-by-side */}
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>意图</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateExtracted({ intent: newContent });
+                  }}
+                  onFocus={(e) => {
+                    if (!formData.extracted?.intent) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = formData.extracted?.intent || '';
+                    }
+                  }}
+                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[2.5rem] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="意图"
+                >
+                  {formData.extracted?.intent || ''}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>角色</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateField('extracted', { ...(formData.extracted || {}), role: newContent });
+                  }}
+                  onFocus={(e) => {
+                    if (!(formData.extracted as any)?.role) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = (formData.extracted as any)?.role || '';
+                    }
+                  }}
+                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[2.5rem] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="角色"
+                >
+                  {(formData.extracted as any)?.role || ''}
+                </div>
+              </div>
+            </div>
+
+            {/* Audience and Action side-by-side */}
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>受众</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateExtracted({ audience: newContent });
+                  }}
+                  onFocus={(e) => {
+                    if (!formData.extracted?.audience) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = formData.extracted?.audience || '';
+                    }
+                  }}
+                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[2.5rem] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="受众"
+                >
+                  {formData.extracted?.audience || ''}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>作用</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateField('usageNotes', newContent);
+                  }}
+                  onFocus={(e) => {
+                    if (!formData.usageNotes) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = formData.usageNotes || '';
+                    }
+                  }}
+                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 min-h-[2.5rem] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="作用"
+                >
+                  {formData.usageNotes || ''}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* 质量控制 */}
+        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+            {/* 质量控制标题占据整行 */}
+            <div className="md:col-span-2">
+              <div className="p-0 bg-transparent transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                    质量控制
+                  </h4>
+                </div>
+              </div>
+            </div>
+
+            {/* 质量目标和边界/禁止项并排 */}
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>质量目标</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateField('cautions', newContent);
+                  }}
+                  onFocus={(e) => {
+                    if (!formData.cautions) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = formData.cautions || '';
+                    }
+                  }}
+                  className={`w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50 leading-relaxed whitespace-pre-wrap overflow-y-auto ${
+                    isLongContent(formData.cautions || '') && !expandedFields['cautions'] ? 'max-h-[400px] overflow-hidden' : 'min-h-[2.5rem]'
+                  }`}
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="质量目标"
+                >
+                  {formData.cautions || ''}
+                </div>
+                {isLongContent(formData.cautions || '') && (
+                  <>
+                    {!expandedFields['cautions'] && (
+                      <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-950/95 via-gray-950/60 to-transparent flex items-end justify-center pb-3 z-10">
+                        <button
+                          onClick={() => toggleFieldExpansion('cautions')}
+                          className="text-xs text-green-400 hover:text-green-300 bg-gray-900/80 px-3 py-1 rounded border border-green-500/30 hover:bg-gray-800/90 transition-all"
+                        >
+                          展开 ({getLineCount(formData.cautions || '')} 行)
+                        </button>
+                      </div>
+                    )}
+                    {expandedFields['cautions'] && (
+                      <div className="mt-2 text-center">
+                        <button
+                          onClick={() => toggleFieldExpansion('cautions')}
+                          className="text-xs text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          收起
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>边界 / 禁止项</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateConstraintsFromTextarea(newContent);
+                  }}
+                  onFocus={(e) => {
+                    if (!(formData.extracted?.constraints || []).length) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = (formData.extracted?.constraints || []).join('\n') || '';
+                    }
+                  }}
+                  className={`w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50 leading-relaxed whitespace-pre-wrap overflow-y-auto ${
+                    isLongContent((formData.extracted?.constraints || []).join('\n')) && !expandedFields['constraints'] ? 'max-h-[400px] overflow-hidden' : 'min-h-[2.5rem]'
+                  }`}
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="边界 / 禁止项"
+                >
+                  {(formData.extracted?.constraints || []).join('\n') || ''}
+                </div>
+                {isLongContent((formData.extracted?.constraints || []).join('\n')) && (
+                  <>
+                    {!expandedFields['constraints'] && (
+                      <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-950/95 via-gray-950/60 to-transparent flex items-end justify-center pb-3 z-10">
+                        <button
+                          onClick={() => toggleFieldExpansion('constraints')}
+                          className="text-xs text-green-400 hover:text-green-300 bg-gray-900/80 px-3 py-1 rounded border border-green-500/30 hover:bg-gray-800/90 transition-all"
+                        >
+                          展开 ({getLineCount((formData.extracted?.constraints || []).join('\n'))} 行)
+                        </button>
+                      </div>
+                    )}
+                    {expandedFields['constraints'] && (
+                      <div className="mt-2 text-center">
+                        <button
+                          onClick={() => toggleFieldExpansion('constraints')}
+                          className="text-xs text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          收起
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 工程与管理 */}
+        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+            {/* 工程与管理标题占据整行 */}
+            <div className="md:col-span-2">
+              <div className="p-0 bg-transparent transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                    工程与管理
+                  </h4>
+                </div>
+              </div>
+            </div>
+
+            {/* 版本更迭和裁定标准并排 */}
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>版本更迭</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateField('description', newContent);
+                  }}
+                  onFocus={(e) => {
+                    if (!formData.description) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = formData.description || '';
+                    }
+                  }}
+                  className="w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50 min-h-[2.5rem] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="版本 / 修改记录"
+                >
+                  {formData.description || ''}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>裁定标准</label>
+              <div className="relative">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    const newContent = target.textContent || '';
+                    updateExtracted({ ...(formData.extracted || {}), evaluation: newContent });
+                  }}
+                  onFocus={(e) => {
+                    if (!(formData.extracted as any)?.evaluation) {
+                      e.target.textContent = '';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.textContent?.trim()) {
+                      e.target.textContent = (formData.extracted as any)?.evaluation || '';
+                    }
+                  }}
+                  className={`w-full bg-gray-950/70 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50 leading-relaxed whitespace-pre-wrap overflow-y-auto ${
+                    isLongContent((formData.extracted as any)?.evaluation || '') && !expandedFields['evaluation'] ? 'max-h-[400px] overflow-hidden' : 'min-h-[2.5rem]'
+                  }`}
+                  style={{
+                    minHeight: getMinHeight()
+                  }}
+                  aria-label="评估标准（模型判定 / 说明）"
+                >
+                  {(formData.extracted as any)?.evaluation || ''}
+                </div>
+                {isLongContent((formData.extracted as any)?.evaluation || '') && (
+                  <>
+                    {!expandedFields['evaluation'] && (
+                      <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-gray-950/95 via-gray-950/60 to-transparent flex items-end justify-center pb-3 z-10">
+                        <button
+                          onClick={() => toggleFieldExpansion('evaluation')}
+                          className="text-xs text-purple-400 hover:text-purple-300 bg-gray-900/80 px-3 py-1 rounded border border-purple-500/30 hover:bg-gray-800/90 transition-all"
+                        >
+                          展开 ({getLineCount((formData.extracted as any)?.evaluation || '')} 行)
+                        </button>
+                      </div>
+                    )}
+                    {expandedFields['evaluation'] && (
+                      <div className="mt-2 text-center">
+                        <button
+                          onClick={() => toggleFieldExpansion('evaluation')}
+                          className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                        >
+                          收起
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+
       </div>
     </aside>
   );
 };
 
 export default PromptMetaPanel;
+
 
 

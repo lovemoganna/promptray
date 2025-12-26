@@ -6,7 +6,9 @@ import {
   ApplicationScene,
   SavedRun,
 } from '../../types';
-import { optimizePromptContent, generateTags, translatePromptToEnglish, generatePromptMetadata } from '../../services/geminiService';
+import { optimizePromptContent, generateTags, translatePromptToEnglish, generatePromptMetadata, generateTitleAndDescription, generateRoleIdentity, generateEvaluation } from '../../services/geminiService';
+import * as groqService from '../../services/groqService';
+import { sendAuditEvent } from '../../services/auditService';
 
 type NotifyFn = (message: string, type: 'success' | 'info' | 'error') => void;
 
@@ -35,24 +37,88 @@ export const usePromptMetaAndTags = ({
   setIsTagging,
   setIsTranslating,
 }: UsePromptMetaAndTagsParams) => {
-  const handleAutoMetadata = useCallback(async () => {
+  const handleAutoMetadata = useCallback(async (options?: any) => {
+    // debug instrumentation removed
+    // If caller specifically requests only role, run a focused generation and return result
+    const provider = options?.provider || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_provider') || 'auto') : 'auto');
+    const model = options?.model || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_name') || '') : '');
+    if (options && options.target === 'role') {
+      try {
+        let role: string | undefined;
+        if (provider === 'groq') {
+          role = await groqService.generateRoleIdentityGroq(formData.title, formData.description, formData.content);
+        } else {
+          role = await generateRoleIdentity(formData.title, formData.description, formData.content);
+        }
+        setFormData(prev => ({ ...prev, extracted: { ...(prev.extracted || {}), role } }));
+        return role;
+      } catch (err) {
+        console.error('generateRoleIdentity error:', err);
+        onNotify?.('智能补全失败，请稍后重试。', 'error');
+        return;
+      }
+    }
     if (!formData.content && !formData.title && !formData.description) {
       onNotify?.('请先完善提示词内容或标题，再自动生成元信息。', 'info');
       return;
     }
 
     setIsAutoMeta(true);
+    // notify runtime used to UI (if provided via params)
+    try {
+      if ((typeof window !== 'undefined') && window.dispatchEvent && provider) {
+        window.dispatchEvent(new CustomEvent('prompt_runtime_used', { detail: { provider, model } }));
+      }
+    } catch {}
     try {
       const baseText = `${formData.title}\n${formData.description}\n${formData.content}`.trim();
 
       // 1. Try model-based metadata generation first (JSON mode in service layer)
       try {
-        const parsed = await generatePromptMetadata(
-          formData.title,
-          formData.description,
-          formData.content
-        );
+        let parsed: any;
+        if (provider === 'groq') {
+          parsed = await groqService.generatePromptMetadataGroq(formData.title, formData.description, formData.content);
+        } else {
+          parsed = await generatePromptMetadata(
+            formData.title,
+            formData.description,
+            formData.content,
+            model || undefined
+          );
+        }
+        // debug instrumentation removed
 
+        // attempt to fill role and evaluation if model didn't return them
+        let roleFromModel: string | undefined = undefined;
+        let evaluationFromModel: string | undefined = undefined;
+        try {
+          if (!(parsed as any).role) {
+            if (provider === 'groq') {
+              roleFromModel = await groqService.generateRoleIdentityGroq(formData.title, formData.description, formData.content);
+            } else {
+              roleFromModel = await generateRoleIdentity(formData.title, formData.description, formData.content);
+            }
+          } else {
+            roleFromModel = (parsed as any).role;
+          }
+        } catch (e) {
+          console.warn('generateRoleIdentity failed:', e);
+        }
+        try {
+          if (!(parsed as any).evaluation) {
+            if (provider === 'groq') {
+              evaluationFromModel = await groqService.generateEvaluationGroq(formData.title, formData.description, formData.content);
+            } else {
+              evaluationFromModel = await generateEvaluation(formData.title, formData.description, formData.content);
+            }
+          } else {
+            evaluationFromModel = (parsed as any).evaluation;
+          }
+        } catch (e) {
+          console.warn('generateEvaluation failed:', e);
+        }
+
+        // debug instrumentation removed
         setFormData(prev => ({
           ...prev,
           category: (parsed.category as Category) || prev.category,
@@ -71,8 +137,50 @@ export const usePromptMetaAndTags = ({
             intent: (parsed as any).intent || (prev.extracted && prev.extracted.intent) || undefined,
             audience: (parsed as any).audience || (prev.extracted && prev.extracted.audience) || undefined,
             constraints: (parsed as any).constraints || (prev.extracted && prev.extracted.constraints) || undefined,
+            evaluation: evaluationFromModel || (prev.extracted && (prev.extracted as any).evaluation) || undefined,
+            role: roleFromModel || (prev.extracted && (prev.extracted as any).role) || undefined,
           },
+          // Include examples if model returned them
+          examples: (parsed as any).examples && Array.isArray((parsed as any).examples) ? (parsed as any).examples : prev.examples,
         }));
+
+        // Audit event (non-blocking) - include prompt snapshot and truncated parsed output for traceability
+        try {
+          const parsedText = (() => {
+            try { return JSON.stringify(parsed); } catch { return String(parsed || ''); }
+          })();
+          const parsedSnippet = parsedText.length > 2000 ? parsedText.slice(0, 2000) + '...[truncated]' : parsedText;
+          const snapshot = {
+            title: formData.title,
+            description: formData.description,
+            contentSnippet: (formData.content || '').slice(0, 2000),
+            config: formData.config || {}
+          };
+          const evPayload = {
+            type: 'auto_metadata',
+            provider,
+            model: model || undefined,
+            title: formData.title,
+            promptId: (formData as any).id || null,
+            parsedKeys: Object.keys(parsed || {}),
+            parsedSnippet,
+            snapshot,
+          };
+          sendAuditEvent(evPayload);
+          // record recent model usage
+          try {
+            const recent = JSON.parse(localStorage.getItem('recent_models') || '[]');
+            const m = model || (formData.config && (formData.config.model || formData.config.modelName)) || null;
+            if (m) {
+              const uniq = [m, ...recent.filter((x: string) => x !== m)].slice(0, 10);
+              localStorage.setItem('recent_models', JSON.stringify(uniq));
+            }
+          } catch {}
+          // send audit
+          // backward-compatible call:
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+          evPayload;
+        } catch {}
 
         onNotify?.('已使用模型根据提示词内容自动生成元信息，你可以继续微调。', 'success');
         return;
@@ -233,12 +341,27 @@ export const usePromptMetaAndTags = ({
     }
     setIsTagging(true);
     try {
+      // Generate Chinese tags
       const tags = await generateTags(formData.title, formData.description, formData.content);
       if (tags.length > 0) {
         setFormData(prev => ({ ...prev, tags: [...new Set([...formData.tags, ...tags])] }));
         onNotify?.(`Added ${tags.length} tags!`, 'success');
       } else {
         onNotify?.('No relevant tags found.', 'info');
+      }
+      // If title/description missing, try to generate from content (Chinese)
+      if ((!formData.title || formData.title.trim() === '') || (!formData.description || formData.description.trim() === '')) {
+        try {
+          const generated = await generateTitleAndDescription(formData.content);
+          setFormData(prev => ({
+            ...prev,
+            title: prev.title && prev.title.trim().length > 0 ? prev.title : (generated.title || prev.title),
+            description: prev.description && prev.description.trim().length > 0 ? prev.description : (generated.description || prev.description),
+          }));
+          onNotify?.('已根据提示词内容自动填充标题和描述（中文）。', 'success');
+        } catch (e) {
+          console.warn('Title/Description generation failed', e);
+        }
       }
     } catch (error: any) {
       console.error('Auto Tag Error:', error);

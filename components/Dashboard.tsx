@@ -9,6 +9,8 @@ interface DashboardProps {
   onNavigateToTag: (tag: string) => void;
 }
 
+// Unified card styles for consistent spacing
+
 const DashboardComponent: React.FC<DashboardProps> = ({
   prompts,
   onOpenPrompt,
@@ -208,21 +210,21 @@ const DashboardComponent: React.FC<DashboardProps> = ({
     <div className="p-8 animate-slide-up-fade pb-20 overflow-y-auto h-full custom-scrollbar">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Header Stats Cards - Enhanced with More Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Header Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-gray-900/40 border border-white/5 rounded-theme p-6 relative overflow-hidden group hover:border-brand-500/30 transition-all hover:shadow-lg hover:shadow-brand-500/10">
                 <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Icons.All size={80} />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-500/0 via-brand-500/0 to-brand-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2 text-xs font-semibold uppercase tracking-widest">
+                <div className="relative z-10 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-widest">
                         <Icons.Code size={14} /> Library
                     </div>
                     <div className="text-2xl font-mono font-bold text-white tracking-tighter">
                         {stats.total}
                     </div>
-                    <div className="text-xs text-gray-500 mt-2 font-mono">
+                    <div className="text-xs text-gray-500 font-mono">
                         Total Prompts
                     </div>
                 </div>
@@ -233,14 +235,14 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                     <Icons.Star size={80} />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/0 via-yellow-500/0 to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2 text-xs font-semibold uppercase tracking-widest">
+                <div className="relative z-10 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-widest">
                         <Icons.Star size={14} /> Favorites
                     </div>
                     <div className="text-2xl font-mono font-bold text-white tracking-tighter">
                         {stats.favorites}
                     </div>
-                    <div className="text-xs text-gray-500 mt-2 font-mono">
+                    <div className="text-xs text-gray-500 font-mono">
                         Saved items
                     </div>
                 </div>
@@ -250,14 +252,14 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                  <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Icons.Run size={80} />
                 </div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2 text-xs font-semibold uppercase tracking-widest">
+                <div className="relative z-10 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-widest">
                         <Icons.Run size={14} /> Avg. Complexity
                     </div>
                     <div className="text-2xl font-mono font-bold text-white tracking-tighter">
                         ~{stats.avgTokens}
                     </div>
-                    <div className="text-xs text-gray-500 mt-2 font-mono">
+                    <div className="text-xs text-gray-500 font-mono">
                         Tokens / Prompt
                     </div>
                 </div>
@@ -267,21 +269,21 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                  <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Icons.Activity size={80} />
                 </div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2 text-xs font-semibold uppercase tracking-widest">
+                <div className="relative z-10 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-widest">
                         <Icons.Activity size={14} /> Activity
                     </div>
-                    <div className="h-[36px] flex items-end gap-1.5 mt-2">
+                    <div className="h-[36px] flex items-end gap-1.5">
                         {stats.activityData.map((val, i) => (
                             <div key={i} className="flex-1 flex flex-col justify-end group/bar relative">
-                                <div 
+                                <div
                                     className="w-full bg-brand-500/20 rounded-t-sm hover:bg-brand-500/50 transition-all"
                                     style={{ height: `${(val / maxActivity) * 100}%`, minHeight: '4px' }}
                                 ></div>
                             </div>
                         ))}
                     </div>
-                    <div className="text-xs text-gray-500 mt-2 font-mono">
+                    <div className="text-xs text-gray-500 font-mono">
                         Last 7 Days
                     </div>
                 </div>
@@ -292,49 +294,49 @@ const DashboardComponent: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 relative overflow-hidden group hover:border-purple-500/30 transition-all">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">With Variables</div>
+                    <div className="space-y-1">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">With Variables</div>
                         <div className="text-xl font-mono font-bold text-white">{stats.promptsWithVariables}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">
+                        <div className="text-[10px] text-gray-600">
                             {stats.total > 0 ? Math.round((stats.promptsWithVariables / stats.total) * 100) : 0}% of total
                         </div>
                     </div>
                     <Icons.Code size={24} className="text-purple-400/30" />
                 </div>
             </div>
-            
+
             <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 relative overflow-hidden group hover:border-cyan-500/30 transition-all">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">With System</div>
+                    <div className="space-y-1">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">With System</div>
                         <div className="text-xl font-mono font-bold text-white">{stats.promptsWithSystem}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">
+                        <div className="text-[10px] text-gray-600">
                             Avg: ~{stats.avgSystemTokens} tokens
                         </div>
                     </div>
                     <Icons.System size={24} className="text-cyan-400/30" />
                 </div>
             </div>
-            
+
             <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 relative overflow-hidden group hover:border-pink-500/30 transition-all">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">With Examples</div>
+                    <div className="space-y-1">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">With Examples</div>
                         <div className="text-xl font-mono font-bold text-white">{stats.promptsWithExamples}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">
+                        <div className="text-[10px] text-gray-600">
                             Avg: {stats.avgExamples.toFixed(1)} per prompt
                         </div>
                     </div>
                     <Icons.List size={24} className="text-pink-400/30" />
                 </div>
             </div>
-            
+
             <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 relative overflow-hidden group hover:border-green-500/30 transition-all">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <div className="text-xs text-gray-500 mb-1 font-semibold uppercase tracking-wider">Saved Runs</div>
+                    <div className="space-y-1">
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Saved Runs</div>
                         <div className="text-xl font-mono font-bold text-white">{stats.totalSavedRuns}</div>
-                        <div className="text-[10px] text-gray-600 mt-1">
+                        <div className="text-[10px] text-gray-600">
                             Test executions
                         </div>
                     </div>
@@ -345,20 +347,20 @@ const DashboardComponent: React.FC<DashboardProps> = ({
         
         {/* Creation Timeline */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4">
-                <div className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 space-y-2">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider flex items-center gap-2">
                     <Icons.Activity size={12} /> Created Today
                 </div>
                 <div className="text-2xl font-mono font-bold text-white">{stats.createdToday}</div>
             </div>
-            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4">
-                <div className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 space-y-2">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider flex items-center gap-2">
                     <Icons.Activity size={12} /> This Week
                 </div>
                 <div className="text-2xl font-mono font-bold text-white">{stats.createdThisWeek}</div>
             </div>
-            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4">
-                <div className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-gray-900/40 border border-white/5 rounded-theme p-4 space-y-2">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider flex items-center gap-2">
                     <Icons.Activity size={12} /> This Month
                 </div>
                 <div className="text-2xl font-mono font-bold text-white">{stats.createdThisMonth}</div>

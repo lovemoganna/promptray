@@ -156,22 +156,25 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
         </p>
       </div>
 
-      {/* LINE 4: System Context */}
-      <div className="bg-blue-950/10 rounded-xl p-4 border border-blue-500/10 backdrop-blur-sm relative group overflow-hidden">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest flex items-center gap-2">
-            <Icons.System size={14} /> System Context
+      {/* LINE 4: System Context - Aligned with edit tab style */}
+      <div className={`bg-blue-950/10 rounded-lg p-6 border border-blue-500/10 transition-all`}>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+            <Icons.System size={14} /> 系统角色
           </h3>
           {formData.systemInstruction && (
-            <button
-              onClick={onCopySystemInstruction}
-              className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-blue-500/10 text-gray-500 hover:text-blue-400 transition-all border border-transparent hover:border-blue-500/20"
-            >
-              <Icons.Copy size={13} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onCopySystemInstruction}
+                className="flex items-center gap-1.5 text-xs font-medium bg-blue-500/15 text-blue-300 px-2 py-1 rounded-lg border border-blue-500/30 hover:bg-blue-500/25 transition-all"
+                title="复制系统角色"
+              >
+                <Icons.Copy size={12} /> 复制
+              </button>
+            </div>
           )}
         </div>
-        <div className="text-gray-400 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar">
+        <div className="w-full bg-gray-950/70 rounded-lg px-3 md:px-4 py-3 text-sm font-mono text-gray-200 leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto custom-scrollbar">
           {formData.systemInstruction || <span className="text-gray-700 italic">No system instructions defined.</span>}
         </div>
       </div>
@@ -208,87 +211,107 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
         </div>
       )}
 
-      {/* LINE 4: Bilingual Previews */}
+      {/* LINE 4: Bilingual Previews - Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* English Preview */}
-        <div className="group/preview-card space-y-2 relative flex flex-col">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-              <span className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">English</span>
+        <div className={`bg-gray-900/60 rounded-lg p-6 space-y-4 border border-white/10 transition-all`}>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <label className="text-xs font-semibold text-green-300 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+              英文提示词预览
               {interpolatedEnglish && (
-                <span className="text-[9px] text-gray-600 font-mono">
-                  {englishStats.chars} chars · {englishStats.words} words
+                <span className="text-[10px] text-green-400/70 font-normal normal-case ml-1">
+                  ({englishStats.chars} chars · {englishStats.words} words)
                 </span>
               )}
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onCopyEnglishPrompt}
+                className="flex items-center gap-1.5 text-xs font-medium bg-green-500/15 text-green-300 px-2 py-1 rounded-lg border border-green-500/30 hover:bg-green-500/25 transition-all"
+                title="复制英文提示词"
+              >
+                <Icons.Copy size={12} /> 复制
+              </button>
             </div>
-            <button onClick={onCopyEnglishPrompt} className="opacity-0 group-hover/preview-card:opacity-100 p-1.5 rounded hover:bg-white/5 text-gray-500 hover:text-blue-400 transition-all border border-transparent hover:border-white/10">
-              <Icons.Copy size={13} />
-            </button>
           </div>
-
-          <div className={`relative text-[12px] md:text-sm text-slate-50 bg-gray-950/90 border border-blue-500/10 rounded-xl p-4 font-mono whitespace-pre-wrap ${isEnglishExpanded ? 'h-auto' : 'max-h-[450px] overflow-hidden'} transition-all duration-300 shadow-2xl flex-1`}>
-            {/* Ambient Background Accent */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.03] to-transparent pointer-events-none"></div>
-            <div className="relative z-10 leading-relaxed">
+          <div className="relative">
+            <div
+              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-300 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${
+                isEnglishExpanded ? 'h-auto overflow-y-auto' : 'max-h-[400px] overflow-hidden'
+              }`}
+            >
               {interpolatedEnglish || <span className="text-gray-700 italic">No English prompt content.</span>}
             </div>
             {!isEnglishExpanded && hasLongEnglish && (
-              <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-gray-950/95 via-gray-950/60 to-transparent flex items-end justify-center pb-4 z-20">
-                <button
-                  onClick={() => setIsEnglishExpanded(true)}
-                  className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/30 px-5 py-2 rounded-full backdrop-blur-md hover:bg-blue-500/20 transition-all shadow-lg"
-                >
-                  <Icons.ChevronDown className="inline mr-1" size={12} /> EXPAND FULL ENGLISH PROMPT
-                </button>
-              </div>
+              <button
+                onClick={() => setIsEnglishExpanded(true)}
+                className="absolute bottom-2 right-2 text-xs text-green-400 hover:text-green-300 bg-gray-900/80 px-2 py-1 rounded border border-green-500/30 hover:bg-gray-800/90 transition-all z-10"
+              >
+                展开 ({englishStats.chars} chars)
+              </button>
             )}
           </div>
           {isEnglishExpanded && hasLongEnglish && (
-            <button onClick={() => setIsEnglishExpanded(false)} className="self-center text-[10px] font-bold text-gray-500 hover:text-blue-400 flex items-center gap-1 mt-1 transition-all">
-              <Icons.ChevronUp size={14} /> COLLAPSE VIEW
-            </button>
+            <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-2">
+              <button
+                onClick={() => setIsEnglishExpanded(false)}
+                className="text-green-400 hover:text-green-300 flex items-center gap-1 transition-all"
+              >
+                <Icons.ChevronUp size={14} /> 收起预览
+              </button>
+            </div>
           )}
         </div>
 
         {/* Chinese Preview */}
-        <div className="group/preview-card space-y-2 relative flex flex-col">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest">中文预览</span>
+        <div className={`bg-gray-900/60 rounded-lg p-6 space-y-4 border border-white/10 transition-all`}>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <label className="text-xs font-semibold text-brand-300 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400"></span>
+              中文提示词预览
               {interpolatedChinese && (
-                <span className="text-[9px] text-gray-600 font-mono">
-                  {chineseStats.chars} 字符 · {chineseStats.words} 词
+                <span className="text-[10px] text-brand-400/70 font-normal normal-case ml-1">
+                  ({chineseStats.chars} 字符 · {chineseStats.words} 词)
                 </span>
               )}
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onCopyChinesePrompt}
+                className="flex items-center gap-1.5 text-xs font-medium bg-brand-500/15 text-brand-300 px-2 py-1 rounded-lg border border-brand-500/30 hover:bg-brand-500/25 transition-all"
+                title="复制中文提示词"
+              >
+                <Icons.Copy size={12} /> 复制
+              </button>
             </div>
-            <button onClick={onCopyChinesePrompt} className="opacity-0 group-hover/preview-card:opacity-100 p-1.5 rounded hover:bg-white/5 text-gray-500 hover:text-emerald-400 transition-all border border-transparent hover:border-white/10">
-              <Icons.Copy size={13} />
-            </button>
           </div>
-
-          <div className={`relative text-[12px] md:text-sm text-slate-100 bg-gray-950/90 border border-emerald-500/10 rounded-xl p-4 whitespace-pre-wrap ${isChineseExpanded ? 'h-auto' : 'max-h-[450px] overflow-hidden'} transition-all duration-300 shadow-2xl flex-1`}>
-            {/* Ambient Background Accent */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] to-transparent pointer-events-none"></div>
-            <div className="relative z-10 leading-relaxed">
+          <div className="relative">
+            <div
+              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-100 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${
+                isChineseExpanded ? 'h-auto overflow-y-auto' : 'max-h-[400px] overflow-hidden'
+              }`}
+            >
               {interpolatedChinese || <span className="text-gray-700 italic">尚未填写中文提示词内容。</span>}
             </div>
             {!isChineseExpanded && hasLongChinese && (
-              <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-gray-950/95 via-gray-950/60 to-transparent flex items-end justify-center pb-4 z-20">
-                <button
-                  onClick={() => setIsChineseExpanded(true)}
-                  className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-5 py-2 rounded-full backdrop-blur-md hover:bg-emerald-500/20 transition-all shadow-lg"
-                >
-                  <Icons.ChevronDown className="inline mr-1" size={12} /> 展开全文 (显示完整中文)
-                </button>
-              </div>
+              <button
+                onClick={() => setIsChineseExpanded(true)}
+                className="absolute bottom-2 right-2 text-xs text-brand-400 hover:text-brand-300 bg-gray-900/80 px-2 py-1 rounded border border-brand-500/30 hover:bg-gray-800/90 transition-all z-10"
+              >
+                展开 ({chineseStats.chars} 字符)
+              </button>
             )}
           </div>
           {isChineseExpanded && hasLongChinese && (
-            <button onClick={() => setIsChineseExpanded(false)} className="self-center text-[10px] font-bold text-gray-600 hover:text-emerald-400 flex items-center gap-1 mt-1 transition-all">
-              <Icons.ChevronUp size={14} /> 收起全文
-            </button>
+            <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-2">
+              <button
+                onClick={() => setIsChineseExpanded(false)}
+                className="text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-all"
+              >
+                <Icons.ChevronUp size={14} /> 收起预览
+              </button>
+            </div>
           )}
         </div>
       </div>

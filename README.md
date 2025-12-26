@@ -93,3 +93,29 @@ The repository includes a GitHub Actions workflow at `.github/workflows/ci.yml` 
 ## License
 
 This project is provided under the MIT License. Update the LICENSE file as needed.
+
+## Model Provider & Model Name Configuration
+
+This project supports selecting the model provider (platform) and the specific model to use for AI-powered features.
+
+Where to configure
+- Global UI: Open any Prompt modal and use the model selector in the top-right (齿轮 icon to open full settings).
+- Settings modal: `Settings → Model Settings` or click the gear to open the modal.
+- Environment variables (fallback): `GEMINI_API_KEY`, `OPENAI_API_KEY` or `GROQ_API_KEY`. Use env override for CI/servers.
+
+Priority (highest → lowest)
+1. Per-request override (passed programmatically via `onAutoMetadata({ provider, model })`)
+2. Global UI selection (persisted in `localStorage` keys: `prompt_model_provider`, `prompt_model_name`)
+3. Environment variables and server configuration
+
+Providers and models
+- `gemini` (Google Gemini): default models e.g. `gemini-3-flash-preview`
+- `groq` (OpenAI/Groq): default model e.g. `openai/gpt-oss-120b`
+- `openai` (future): e.g. `gpt-4o`
+
+Reproducibility
+- Each saved prompt includes `config.modelProvider` and `config.modelName` so others can reproduce results.
+
+Troubleshooting
+- If a provider call fails, the app will attempt fallback (Auto mode: Gemini → Groq).
+- Check localStorage keys or the saved prompt's `config` to see what was used.

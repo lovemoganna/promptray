@@ -12,8 +12,13 @@ export interface Theme {
   id: string;
   label: string;
   colors: {
-    brand: string; 
+    brand: string;
     bg: string;
+    // 扩展的颜色系统
+    surface?: string;
+    text?: string;
+    border?: string;
+    muted?: string;
   };
   radius: string; // "0px" | "0.25rem" | "0.75rem" | "1.5rem"
   bgPattern?: 'dots' | 'grid' | 'noise' | 'none';
@@ -21,6 +26,8 @@ export interface Theme {
 
 export interface PromptConfig {
     model: string;
+    modelProvider?: string;
+    modelName?: string;
     temperature: number;
     maxOutputTokens: number;
     topP?: number;
@@ -130,6 +137,8 @@ export interface Prompt {
   sourceAuthor?: string;                    // 作者
   sourceUrl?: string;                       // 原文链接
   recommendedModels?: string[];             // 适用模型列表（Midjourney, DALL-E, Sora, Claude...）
+  language?: string;                         // 提示词主要语言（例如：中文 / English）
+  visibility?: 'public' | 'private';         // 可见性：公开 / 仅我可见
   usageNotes?: string;                      // 使用说明
   cautions?: string;                        // 注意事项 / 避坑
   // 自动提取的提示词视角信息（可选）
@@ -137,6 +146,7 @@ export interface Prompt {
     intent?: string;         // 提示词的主要目的或意图（从内容中抽取）
     audience?: string;       // 目标受众或使用者
     constraints?: string[];   // 约束条件或限制（多条）
+    evaluation?: string;      // 模型或人工给出的评估/裁定说明
   };
   collectedAt?: number;                     // 收藏时间（单独存一份，避免和 createdAt 混淆）
   isFavorite: boolean;
