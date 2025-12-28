@@ -3,7 +3,7 @@ import { Highlight, themes } from 'prism-react-renderer';
 import { Icons } from './Icons';
 import { useDuckDBSync } from '../hooks/useDuckDBSync';
 import { runGeminiPrompt } from '../services/geminiService';
-import { FOUNDATION, LAYOUT, COMPONENT_STYLES, colors } from './ui/styleTokens';
+import { FOUNDATION, LAYOUT, colors } from './ui/styleTokens';
 
 // 历史与收藏Tab组件
 const HistoryAndFavoritesTab: React.FC<{
@@ -1087,7 +1087,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({
   const [favorites, setFavorites] = useState<FavoriteSQL[]>([]);
 
   // 编辑器配置状态
-  const [editorHeight, setEditorHeight] = useState<number>(192); // 默认12rem (192px)
+  const [editorHeight] = useState<number>(192); // 默认12rem (192px)
 
   // 初始化和数据加载
   useEffect(() => {
