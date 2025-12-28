@@ -1361,23 +1361,6 @@ const App: React.FC = () => {
                                 </button>
                             </div>
 
-                            {/* Keyboard Shortcuts Help - Mobile Optimized */}
-                            <div className="mt-3 sm:mt-4 text-center hidden sm:block">
-                                <div className="inline-flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs sm:text-sm text-gray-400">
-                                    <span className="flex items-center gap-1">
-                                        <kbd className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-white/10 rounded text-xs">Esc</kbd>
-                                        <span className="hidden sm:inline">关闭</span>
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <kbd className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-white/10 rounded text-xs">Enter</kbd>
-                                        <span className="hidden sm:inline">选择默认</span>
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <kbd className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-white/10 rounded text-xs">←→</kbd>
-                                        <span className="hidden sm:inline">切换区域</span>
-                                    </span>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Enhanced Model Selection Section - Mobile Optimized */}
