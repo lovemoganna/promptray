@@ -1283,44 +1283,6 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
 
-                            {/* Enhanced Quick Actions Bar */}
-                            <div className="flex items-center justify-center gap-4 pt-2">
-                                <button
-                                    onClick={() => {
-                                        setSelectedProvider('auto');
-                                        setSelectedModel('');
-                                        setModelSelectorOpen(false);
-                                        showToast('🤖 已启用智能自动选择模式', 'success');
-                                    }}
-                                    className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 border border-violet-400/40 hover:border-violet-400/60 rounded-2xl text-violet-200 hover:text-violet-100 font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-violet-500/20 transform hover:scale-105 active:scale-95"
-                                    title="Ctrl+1: 智能自动选择最优模型"
-                                    aria-label="智能选择模式：让AI自动选择最适合的模型，快捷键Ctrl+1"
-                                    role="button"
-                                    aria-describedby="smart-select-description"
-                                >
-                                    <Icons.Run size={18} className="group-hover:animate-pulse transition-transform duration-300" aria-hidden="true" />
-                                    <span>🤖 智能选择</span>
-                                    <kbd className="hidden md:inline-block ml-2 px-1.5 py-0.5 bg-violet-500/20 text-violet-300 text-xs rounded border border-violet-400/30" aria-label="快捷键Ctrl+1">⌘1</kbd>
-                                </button>
-                                <div className="w-px h-8 bg-white/20"></div>
-                                <button
-                                    onClick={() => {
-                                        // This would trigger a refresh in the ModelSelector component
-                                        // For now, just show feedback
-                                        showToast('🔄 正在刷新模型列表...', 'info');
-                                        setTimeout(() => {
-                                            showToast('✅ 模型列表已更新', 'success');
-                                        }, 1500);
-                                    }}
-                                    className="group flex items-center gap-3 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-2xl text-gray-300 hover:text-white font-bold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                                    title="刷新所有服务商的模型列表"
-                                    aria-label="刷新模型列表：重新从所有AI服务商获取最新的模型信息"
-                                    role="button"
-                                >
-                                    <Icons.Restore size={18} className="group-hover:rotate-180 transition-transform duration-500" aria-hidden="true" />
-                                    <span>🔄 刷新列表</span>
-                                </button>
-                            </div>
 
                         </div>
 
