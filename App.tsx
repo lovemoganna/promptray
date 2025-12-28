@@ -1137,7 +1137,7 @@ const App: React.FC = () => {
                 aria-describedby="model-selector-description"
             >
                 <div
-                    className={`w-full max-w-[60vw] bg-gradient-to-br from-gray-900/95 via-slate-900/98 to-gray-900/95 border rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up-fade backdrop-blur-2xl ring-1 transition-all duration-300 ${
+                    className={`w-full max-w-[95vw] bg-gradient-to-br from-gray-900/95 via-slate-900/98 to-gray-900/95 border rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up-fade backdrop-blur-2xl ring-1 transition-all duration-300 ${
                         modelSelectorFocusMode === 'overview'
                             ? 'border-violet-400/30 ring-violet-400/20 shadow-violet-500/20'
                             : 'border-blue-400/30 ring-blue-400/20 shadow-blue-500/20'
@@ -1425,27 +1425,6 @@ const App: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Footer with tips - Mobile Optimized */}
-                            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-cyan-500/10 border border-white/10 rounded-xl sm:rounded-2xl backdrop-blur-sm">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center border border-blue-400/30 flex-shrink-0">
-                                        <Icons.Info size={14} className="sm:w-4 sm:h-4 text-blue-300" />
-                                    </div>
-                                    <div className="space-y-1 flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-white">💡 选择建议</p>
-                                        <div className="text-xs sm:text-sm text-gray-300 leading-relaxed space-y-1">
-                                            <div className="flex flex-col sm:flex-row sm:gap-4">
-                                                <span>• <strong>GROQ</strong> 适合快速对话</span>
-                                                <span>• <strong>OpenAI</strong> 适合高质量创作</span>
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row sm:gap-4">
-                                                <span>• <strong>Gemini</strong> 适合多模态分析</span>
-                                                <span>• <strong>Auto</strong> 智能自动选择</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

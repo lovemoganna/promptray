@@ -184,6 +184,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [expandedPlatforms, setExpandedPlatforms] = useState<Set<string>>(new Set());
   const [loadErrors, setLoadErrors] = useState<Record<string, string>>({});
+  const [showComparison, setShowComparison] = useState(false);
 
   // Load all available models
   useEffect(() => {
@@ -224,8 +225,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             }
           }
 
-          if (models.length > 0) {
-            models.forEach(model => {
+          // Always show models for providers with API keys
+          if (checkApiKeyAvailability(provider)) {
+            // If we have API key but no models loaded, use fallback models
+            const modelsToShow = models.length > 0 ? models : (await import('../services/modelRegistry')).fallbackModels[provider] || [];
+
+            modelsToShow.forEach(model => {
               const details = getModelDetails(provider, model);
               allOptions.push({
                 provider,
@@ -235,18 +240,27 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 ...details
               });
             });
-            // Clear any previous error for this provider
-            setLoadErrors(prev => {
-              const newErrors = { ...prev };
-              delete newErrors[provider];
-              return newErrors;
-            });
+
+            // If models were loaded from API but we had errors, still show them
+            if (models.length > 0 && loadError) {
+              setLoadErrors(prev => ({
+                ...prev,
+                [provider]: `部分加载失败，但显示可用模型: ${loadError}`
+              }));
+            } else {
+              // Clear any previous error for this provider
+              setLoadErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[provider];
+                return newErrors;
+              });
+            }
           } else {
-            // Add fallback options with error information
+            // Add fallback options with error information for providers without API keys
             allOptions.push({
               provider,
               model: '',
-              displayName: `${provider} (加载失败)`,
+              displayName: `${provider} (需要API密钥)`,
               providerDisplayName: PROVIDER_DISPLAY_NAMES[provider] || provider,
               speed: 'normal',
               quality: 'standard',
@@ -255,7 +269,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             // Store error information
             setLoadErrors(prev => ({
               ...prev,
-              [provider]: loadError || 'Failed to load models'
+              [provider]: 'API密钥未配置'
             }));
           }
         }
@@ -361,7 +375,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+            <div className="space-y-6">
           {/* Optimized Header - Enhanced visual hierarchy */}
           <div className="flex items-center justify-between pb-2 border-b border-white/5">
             <div className="flex items-center gap-4">
@@ -373,16 +387,188 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 <p className="text-sm text-gray-400 font-medium leading-tight">选择最适合您创作需求的AI模型</p>
               </div>
             </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-700/80 border border-gray-600/40 hover:border-gray-500/60 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-              title="刷新模型列表"
-            >
-              <Icons.Restore size={16} className={refreshing ? 'animate-spin' : ''} />
-              <span>{refreshing ? '刷新中...' : '刷新列表'}</span>
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Performance Comparison Button */}
+              <button
+                onClick={() => setShowComparison(!showComparison)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-700/80 border border-gray-600/40 hover:border-gray-500/60 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                title="模型性能对比"
+              >
+                <Icons.Analysis size={16} />
+                <span>对比</span>
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-700/80 border border-gray-600/40 hover:border-gray-500/60 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                title="刷新模型列表"
+              >
+                <Icons.Restore size={16} className={refreshing ? 'animate-spin' : ''} />
+                <span>{refreshing ? '刷新中...' : '刷新列表'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Smart Recommendations */}
+          {!showComparison && (
+            <div className="bg-gradient-to-br from-brand-500/10 to-purple-500/10 border border-brand-500/30 rounded-2xl p-6 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-brand-500/25 to-purple-500/25 rounded-xl flex items-center justify-center border border-brand-500/40">
+                  <Icons.Sparkles size={16} className="text-brand-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white">智能推荐</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Speed Optimized */}
+                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center border border-emerald-500/40">
+                      <Icons.Run size={12} className="text-emerald-400" />
+                    </div>
+                    <span className="text-sm font-semibold text-emerald-300">速度优先</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2">适合快速对话和实时交互</p>
+                  <div className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+                    GROQ GPT-OSS-120B ⚡
+                  </div>
+                </div>
+
+                {/* Quality Optimized */}
+                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/40">
+                      <Icons.Target size={12} className="text-blue-400" />
+                    </div>
+                    <span className="text-sm font-semibold text-blue-300">质量优先</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2">适合专业写作和复杂分析</p>
+                  <div className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors">
+                    OpenAI GPT-4 🏆
+                  </div>
+                </div>
+
+                {/* Cost Optimized */}
+                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-500/40">
+                      <Icons.Trash size={12} className="text-green-400" />
+                    </div>
+                    <span className="text-sm font-semibold text-green-300">成本优先</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-2">适合大量使用和预算有限</p>
+                  <div className="text-sm font-medium text-white group-hover:text-green-300 transition-colors">
+                    GROQ Llama-3-8B 🆓
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Performance Comparison Table */}
+          {showComparison && (
+            <div className="bg-gray-900/70 border border-gray-700/60 rounded-2xl p-6 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Icons.Analysis size={20} className="text-brand-400" />
+                  模型性能对比
+                </h3>
+                <button
+                  onClick={() => setShowComparison(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <Icons.Close size={18} />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-700/60">
+                      <th className="text-left py-3 px-2 text-gray-400 font-semibold">模型</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-semibold">速度</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-semibold">质量</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-semibold">成本</th>
+                      <th className="text-center py-3 px-2 text-gray-400 font-semibold">上下文</th>
+                      <th className="text-left py-3 px-2 text-gray-400 font-semibold">适用场景</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700/30">
+                    {modelOptions
+                      .filter(option => option.model && option.model !== 'auto')
+                      .slice(0, 8) // Show top 8 models
+                      .map((option, index) => (
+                        <tr key={index} className="hover:bg-gray-800/50 transition-colors">
+                          <td className="py-3 px-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                option.provider === 'auto' ? 'bg-yellow-400' :
+                                option.provider === 'gemini' ? 'bg-blue-400' :
+                                option.provider === 'groq' ? 'bg-purple-400' :
+                                'bg-green-400'
+                              }`} />
+                              <span className="text-white font-medium truncate max-w-48">{option.displayName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              option.speed === 'ultra-fast' ? 'bg-emerald-500/20 text-emerald-300' :
+                              option.speed === 'fast' ? 'bg-blue-500/20 text-blue-300' :
+                              option.speed === 'normal' ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-gray-500/20 text-gray-300'
+                            }`}>
+                              {option.speed === 'ultra-fast' ? '极快' :
+                               option.speed === 'fast' ? '快速' :
+                               option.speed === 'normal' ? '标准' : '较慢'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              option.quality === 'excellent' ? 'bg-emerald-500/20 text-emerald-300' :
+                              option.quality === 'good' ? 'bg-blue-500/20 text-blue-300' :
+                              option.quality === 'standard' ? 'bg-gray-500/20 text-gray-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}>
+                              {option.quality === 'excellent' ? '优秀' :
+                               option.quality === 'good' ? '良好' :
+                               option.quality === 'standard' ? '标准' : '基础'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              option.cost === 'free' ? 'bg-green-500/20 text-green-300' :
+                              option.cost === 'low' ? 'bg-blue-500/20 text-blue-300' :
+                              option.cost === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}>
+                              {option.cost === 'free' ? '免费' :
+                               option.cost === 'low' ? '实惠' :
+                               option.cost === 'medium' ? '中等' : '昂贵'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-center text-gray-300">
+                            {option.contextWindow ? (
+                              option.contextWindow >= 100000 ?
+                                `${(option.contextWindow/1000).toFixed(0)}K` :
+                                option.contextWindow.toLocaleString()
+                            ) : '-'}
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="flex flex-wrap gap-1">
+                              {option.useCases?.slice(0, 2).map((useCase, idx) => (
+                                <span key={idx} className="text-xs bg-gray-700/50 text-gray-300 px-2 py-0.5 rounded-md">
+                                  {useCase}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Optimized Platform Grid - Improved spacing and alignment */}
           {(() => {
@@ -430,7 +616,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   const models = groupedModels[platform.key];
                   const hasApiKey = platform.key === 'auto' || checkApiKeyAvailability(platform.key as ProviderKey);
 
-                  if (!hasApiKey && models.length === 0) {
+                  // Always show platforms with API keys or auto mode
+                  if (!hasApiKey && platform.key !== 'auto') {
                     return null;
                   }
 
@@ -446,7 +633,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         ? `bg-gradient-to-br from-${platform.color}-500/25 to-${platform.color}-600/25 border-2 border-${platform.color}-500/50 shadow-sm`
                         : 'bg-gray-700/40 border-2 border-gray-600/50'
                     }`}>
-                      {hasApiKey ? platform.icon : '🔒'}
+                      {hasApiKey ? (
+                        platform.key === 'auto' ? <Icons.Sparkles size={18} className="text-yellow-400" /> :
+                        platform.key === 'openai' ? <Icons.Star size={18} className="text-green-400" /> :
+                        platform.key === 'gemini' ? <Icons.Target size={18} className="text-blue-400" /> :
+                        <Icons.Run size={18} className="text-purple-400" />
+                      ) : <Icons.Error size={18} className="text-gray-500" />}
                     </div>
                     <div className="flex-1 min-w-0 text-left space-y-1">
                       <div className="flex items-center gap-3">
@@ -491,7 +683,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                             className={`
                               w-full p-4 text-left rounded-xl transition-all duration-300 group relative overflow-hidden h-18 flex items-center
                               ${option.provider === value.provider && option.model === value.model
-                                ? 'bg-gradient-to-r from-blue-500/25 to-cyan-500/25 border-2 border-blue-400/70 shadow-xl shadow-blue-500/30 ring-1 ring-blue-400/20'
+                                ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-2 border-blue-400/80 shadow-2xl shadow-blue-500/40 ring-2 ring-blue-400/30 transform scale-[1.02]'
                                 : 'bg-gray-900/90 hover:bg-gray-800/95 border border-gray-700/60 hover:border-gray-600/80 hover:shadow-lg'
                               }
                             `}
@@ -525,8 +717,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
                               {/* Enhanced Content - Rich information display */}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between h-full gap-3">
-                                  <div className="flex flex-col justify-start flex-1 min-w-0 space-y-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0 space-y-1">
                                     <h4 className={`text-base font-bold truncate leading-tight ${
                                       option.provider === value.provider && option.model === value.model
                                         ? 'text-white'
@@ -535,8 +727,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                       {option.displayName}
                                     </h4>
 
-                                    {/* Model metrics and badges */}
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                    {/* Model metrics and badges - 更紧凑的排列 */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       {/* Speed indicator */}
                                       {option.speed && (
                                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -573,9 +765,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                       )}
                                     </div>
 
-                                    {/* Description */}
+                                    {/* Description - 更靠近标签 */}
                                     {option.description && (
-                                      <p className={`text-sm leading-relaxed ${
+                                      <p className={`text-sm leading-snug mt-1 ${
                                         option.provider === value.provider && option.model === value.model
                                           ? 'text-blue-200'
                                           : 'text-gray-400 group-hover:text-gray-300'
@@ -584,7 +776,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                       </p>
                                     )}
 
-                                    {/* Use cases */}
+                                    {/* Use cases - 更紧凑的间距 */}
                                     {option.useCases && option.useCases.length > 0 && (
                                       <div className="flex flex-wrap gap-1 mt-1">
                                         {option.useCases.slice(0, 3).map((useCase, idx) => (
@@ -601,8 +793,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                                     )}
                                   </div>
 
+                                  {/* 右侧操作标签 - 与左侧状态点垂直对齐 */}
                                   {option.provider === value.provider && option.model === value.model && (
-                                    <div className="flex items-center gap-1.5 text-sm text-blue-300 font-bold px-3 py-1.5 bg-blue-500/20 border border-blue-400/50 rounded-lg shadow-sm">
+                                    <div className="flex items-center gap-1.5 text-sm text-blue-300 font-bold px-3 py-1.5 bg-blue-500/20 border border-blue-400/50 rounded-lg shadow-sm ml-auto">
                                       <Icons.CheckCircle size={12} />
                                       <span>已选择</span>
                                     </div>
