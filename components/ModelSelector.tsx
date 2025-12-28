@@ -409,61 +409,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
           </div>
 
-          {/* Smart Recommendations */}
-          {!showComparison && (
-            <div className="bg-gradient-to-br from-brand-500/10 to-purple-500/10 border border-brand-500/30 rounded-2xl p-6 animate-in slide-in-from-top-2 duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-brand-500/25 to-purple-500/25 rounded-xl flex items-center justify-center border border-brand-500/40">
-                  <Icons.Sparkles size={16} className="text-brand-400" />
-                </div>
-                <h3 className="text-lg font-bold text-white">智能推荐</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Speed Optimized */}
-                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center border border-emerald-500/40">
-                      <Icons.Run size={12} className="text-emerald-400" />
-                    </div>
-                    <span className="text-sm font-semibold text-emerald-300">速度优先</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-2">适合快速对话和实时交互</p>
-                  <div className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
-                    GROQ GPT-OSS-120B ⚡
-                  </div>
-                </div>
-
-                {/* Quality Optimized */}
-                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/40">
-                      <Icons.Target size={12} className="text-blue-400" />
-                    </div>
-                    <span className="text-sm font-semibold text-blue-300">质量优先</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-2">适合专业写作和复杂分析</p>
-                  <div className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors">
-                    OpenAI GPT-4 🏆
-                  </div>
-                </div>
-
-                {/* Cost Optimized */}
-                <div className="bg-gray-900/60 border border-gray-700/60 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-6 h-6 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-500/40">
-                      <Icons.Trash size={12} className="text-green-400" />
-                    </div>
-                    <span className="text-sm font-semibold text-green-300">成本优先</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-2">适合大量使用和预算有限</p>
-                  <div className="text-sm font-medium text-white group-hover:text-green-300 transition-colors">
-                    GROQ Llama-3-8B 🆓
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Performance Comparison Table */}
           {showComparison && (
