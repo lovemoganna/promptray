@@ -80,105 +80,105 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
           <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple}`}></div>
           元数据
         </h3>
-        {/* 智能补全控制面板 - 重新设计的布局 */}
-        <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg p-3 backdrop-blur-sm">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* 字段选择器 */}
-            <div className="flex items-center gap-2">
-              <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} whitespace-nowrap`}>
-                选择字段
-              </label>
-              <select
-                value={autoTarget}
-                onChange={(e) => setAutoTarget(e.target.value)}
-                aria-label="选择要自动补全的字段（可选）"
-                className={`${SECTION_STYLES.content.select} min-w-[120px] bg-[var(--color-bg-primary)] border-[var(--color-border-primary)]`}
-              >
-                <option value="">选择字段</option>
-                <option value="all">全部</option>
-                <option value="intent">意图</option>
-                <option value="role">角色</option>
-                <option value="audience">受众</option>
-                <option value="action">作用</option>
-                <option value="quality">质量目标</option>
-                <option value="constraints">边界</option>
-                <option value="examples">示例</option>
-                <option value="format">格式</option>
-                <option value="version">版本</option>
-                <option value="evaluation">评估</option>
-              </select>
-            </div>
+        <div className="flex items-center gap-3 flex-1 min-w-0 w-full justify-end">
+          {onAutoMetadata && (
+            <>
+              {/* 选择字段下拉框 - 使用统一样式 */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-[var(--color-text-muted)] whitespace-nowrap">
+                  选择字段:
+                </label>
+                <select
+                  value={autoTarget}
+                  onChange={(e) => setAutoTarget(e.target.value)}
+                  aria-label="选择要自动补全的字段（可选）"
+                  className={`${SECTION_STYLES.content.select} w-auto min-w-[100px] text-xs px-2 py-1.5 h-8`}
+                >
+                  <option value="">选择字段</option>
+                  <option value="all">全部</option>
+                  <option value="intent">意图</option>
+                  <option value="role">角色</option>
+                  <option value="audience">受众</option>
+                  <option value="action">作用</option>
+                  <option value="quality">质量目标</option>
+                  <option value="constraints">边界</option>
+                  <option value="examples">示例</option>
+                  <option value="format">格式</option>
+                  <option value="version">版本</option>
+                  <option value="evaluation">评估</option>
+                </select>
+              </div>
 
-            {/* 操作按钮组 */}
-            <div className="flex items-center gap-2">
-              {/* 智能补全按钮 - 主操作 */}
-              <button
-                onClick={async () => {
-                  if (!onAutoMetadata || !autoTarget) return;
-                  setIsAutoMetaLoading(true);
-                  try {
-                    // If user requested "全部", delegate full processing to parent hook which already
-                    // performs model-based generation and sets formData for all related fields.
-                    if (autoTarget === 'all') {
-                      await onAutoMetadata({ target: 'all' } as any);
-                      return;
+              {/* 操作按钮组 - 更紧凑的布局 */}
+              <div className="flex items-center gap-2">
+                {/* 智能补全按钮 - 主要操作 */}
+                <button
+                  onClick={async () => {
+                    if (!onAutoMetadata || !autoTarget) return;
+                    setIsAutoMetaLoading(true);
+                    try {
+                      // If user requested "全部", delegate full processing to parent hook which already
+                      // performs model-based generation and sets formData for all related fields.
+                      if (autoTarget === 'all') {
+                        await onAutoMetadata({ target: 'all' } as any);
+                        return;
+                      }
+
+                      const res = await onAutoMetadata({ target: autoTarget } as any);
+                      if (!res) return;
+
+                      // handle several return shapes conservatively; prefer explicit mapping for specific targets
+                      if (typeof res === 'string') {
+                        if (autoTarget === 'intent') updateExtracted({ intent: res });
+                        else if (autoTarget === 'role') updateExtracted({ role: res } as any);
+                        else if (autoTarget === 'audience') updateExtracted({ audience: res } as any);
+                        else if (autoTarget === 'action') updateField('usageNotes', res);
+                        else if (autoTarget === 'quality') updateField('cautions', res);
+                        else if (autoTarget === 'format') updateField('outputType', res as any);
+                        else if (autoTarget === 'version') updateField('description', res);
+                        else if (autoTarget === 'evaluation') updateExtracted({ ...(formData.extracted || {}), evaluation: res } as any);
+                      } else if (res.extracted) {
+                        updateExtracted(res.extracted);
+                      } else if (res.examples && Array.isArray(res.examples)) {
+                        // Update examples using current formData
+                        onFormDataChange({ ...formData, examples: res.examples } as any);
+                      }
+                    } catch (error) {
+                      console.error('智能补全失败:', error);
+                      // Don't rethrow - let error boundary handle it
+                    } finally {
+                      setIsAutoMetaLoading(false);
                     }
+                  }}
+                  disabled={isAutoMetaLoading || !autoTarget}
+                  className={`${SECTION_STYLES.buttons.primary} px-3 py-1.5 text-xs h-8 min-h-0`}
+                  title="智能补全选中字段"
+                >
+                  {isAutoMetaLoading ? (
+                    <>
+                      <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin mr-1"></div>
+                      补全中
+                    </>
+                  ) : (
+                    <>
+                      <Icons.Sparkles size={12} className="mr-1" />
+                      智能补全
+                    </>
+                  )}
+                </button>
 
-                    const res = await onAutoMetadata({ target: autoTarget } as any);
-                    if (!res) return;
-
-                    // handle several return shapes conservatively; prefer explicit mapping for specific targets
-                    if (typeof res === 'string') {
-                      if (autoTarget === 'intent') updateExtracted({ intent: res });
-                      else if (autoTarget === 'role') updateExtracted({ role: res } as any);
-                      else if (autoTarget === 'audience') updateExtracted({ audience: res } as any);
-                      else if (autoTarget === 'action') updateField('usageNotes', res);
-                      else if (autoTarget === 'quality') updateField('cautions', res);
-                      else if (autoTarget === 'format') updateField('outputType', res as any);
-                      else if (autoTarget === 'version') updateField('description', res);
-                      else if (autoTarget === 'evaluation') updateExtracted({ ...(formData.extracted || {}), evaluation: res } as any);
-                    } else if (res.extracted) {
-                      updateExtracted(res.extracted);
-                    } else if (res.examples && Array.isArray(res.examples)) {
-                      // Update examples using current formData
-                      onFormDataChange({ ...formData, examples: res.examples } as any);
-                    }
-                  } catch (error) {
-                    console.error('智能补全失败:', error);
-                    // Don't rethrow - let error boundary handle it
-                  } finally {
-                    setIsAutoMetaLoading(false);
-                  }
-                }}
-                disabled={isAutoMetaLoading || !autoTarget}
-                className={`${SECTION_STYLES.buttons.primary} ${isAutoMetaLoading ? 'animate-pulse' : ''} min-h-[36px] px-4`}
-              >
-                {isAutoMetaLoading ? (
-                  <>
-                    <div className="w-4 h-4 border border-white/40 border-t-white rounded-full animate-spin mr-2"></div>
-                    补全中...
-                  </>
-                ) : (
-                  <>
-                    <Icons.Sparkles size={14} className="mr-1" />
-                    智能补全
-                  </>
-                )}
-              </button>
-
-              {/* 调试API按钮 - 次级操作 */}
-              <button
-                onClick={() => debugEnvironmentVariables()}
-                className={`${SECTION_STYLES.buttons.secondary} min-h-[36px] px-3`}
-                title="调试环境变量"
-              >
-                <Icons.Code size={14} className="mr-1" />
-                调试API
-              </button>
-            </div>
-          </div>
-        </div>
-          {/* auto-tag button intentionally removed per design: tagging remains possible via parent controls */}
+                {/* 调试API按钮 - 次级操作 */}
+                <button
+                  onClick={() => debugEnvironmentVariables()}
+                  className={`${SECTION_STYLES.buttons.secondary} px-2.5 py-1.5 text-xs h-8 min-h-0`}
+                  title="调试环境变量"
+                >
+                  <Icons.Settings size={12} className="mr-1" />
+                  调试API
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
