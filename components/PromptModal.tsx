@@ -959,8 +959,8 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-md p-2 sm:p-3 md:p-4 animate-fade-in transition-all" data-modal-overlay>
       <div className={`w-full rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border-primary)] shadow-xl flex flex-col max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] relative animate-slide-up-fade text-[var(--color-text-primary)] mt-2 md:mt-4 overflow-y-auto custom-scrollbar ${
         !state.isDesktopSidebarOpen
-          ? 'max-w-[180vw] md:max-w-[calc(100vw-2rem)] lg:max-w-[calc(100vw-3rem)] xl:max-w-[calc(100vw-4rem)] 2xl:max-w-[1600px]'
-          : 'max-w-[180vw] md:max-w-[calc(100vw-16rem-2rem)] lg:max-w-[calc(100vw-16rem-3rem)] xl:max-w-[calc(100vw-16rem-4rem)] 2xl:max-w-[calc(100vw-16rem-6rem)]'
+          ? 'max-w-[calc(100vw-1rem)] md:max-w-[calc(100vw-2rem)] lg:max-w-[calc(100vw-3rem)] xl:max-w-[calc(100vw-4rem)] 2xl:max-w-[calc(100vw-6rem)]'
+          : 'max-w-[calc(100vw-1rem)] md:max-w-[calc(100vw-18rem)] lg:max-w-[calc(100vw-20rem)] xl:max-w-[calc(100vw-22rem)] 2xl:max-w-[calc(100vw-24rem)]'
       }`} data-modal-panel>
         {/* Header：简化为纯色条，减少视觉干扰 */}
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 md:px-8 lg:px-6 py-4 sm:py-6 md:py-8 border-b border-[var(--color-border-primary)] shrink-0 bg-[var(--color-bg-secondary)] z-10 relative" data-modal-header>
