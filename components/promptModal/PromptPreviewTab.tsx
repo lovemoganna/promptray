@@ -80,7 +80,7 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
   const hasLongChinese = isLongContent(interpolatedChinese);
 
   return (
-    <div className="space-y-6 w-full animate-slide-up-fade">
+    <div className="space-y-6 w-full h-full animate-slide-up-fade">
       {/* LINE 1: Title & Quick Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-900/40 p-4 rounded-xl border border-white/5 backdrop-blur-sm shadow-lg">
         <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight flex-1 min-w-[200px]">
@@ -212,7 +212,7 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
       )}
 
       {/* LINE 4: Bilingual Previews - Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-stretch">
         {/* English Preview */}
         <div className={`bg-gray-900/60 rounded-lg p-6 space-y-4 border border-white/10 transition-all`}>
           <div className="flex justify-between items-center flex-wrap gap-2">
@@ -237,9 +237,8 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
           </div>
           <div className="relative">
             <div
-              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-300 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${
-                isEnglishExpanded ? 'h-auto overflow-y-auto' : 'max-h-[400px] overflow-hidden'
-              }`}
+              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-300 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${isEnglishExpanded ? 'h-auto overflow-y-auto max-h-[60vh]' : 'min-h-[200px] max-h-[400px] overflow-y-auto'
+                }`}
             >
               {interpolatedEnglish || <span className="text-gray-700 italic">No English prompt content.</span>}
             </div>
@@ -288,9 +287,8 @@ export const PromptPreviewTab: React.FC<PromptPreviewTabProps> = ({
           </div>
           <div className="relative">
             <div
-              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-100 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${
-                isChineseExpanded ? 'h-auto overflow-y-auto' : 'max-h-[400px] overflow-hidden'
-              }`}
+              className={`w-full bg-gray-950/80 border border-white/15 rounded-lg px-3 md:px-4 py-3 text-sm md:text-sm font-mono text-gray-100 leading-relaxed whitespace-pre-wrap custom-scrollbar transition-all ${isChineseExpanded ? 'h-auto overflow-y-auto max-h-[60vh]' : 'min-h-[200px] max-h-[400px] overflow-y-auto'
+                }`}
             >
               {interpolatedChinese || <span className="text-gray-700 italic">尚未填写中文提示词内容。</span>}
             </div>

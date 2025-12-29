@@ -15,6 +15,8 @@ interface ModelSelectorProps {
     provider?: string;
     model?: string;
   };
+  selectedProvider?: string;
+  selectedModel?: string;
 }
 
 interface ModelOption {
@@ -177,7 +179,9 @@ const groupModelsByProvider = (modelOptions: ModelOption[]) => {
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
   value,
   onChange,
-  className = ''
+  className = '',
+  selectedProvider,
+  selectedModel
 }) => {
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -412,7 +416,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
           {/* Performance Comparison Table */}
           {showComparison && (
-            <div className="bg-gray-900/70 border border-gray-700/60 rounded-2xl p-6 animate-in slide-in-from-top-2 duration-300">
+            <div className="bg-gray-900/70 border border-gray-700/60 rounded-2xl px-0 py-6 animate-in slide-in-from-top-2 duration-300">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Icons.Analysis size={20} className="text-brand-400" />
@@ -515,6 +519,76 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
           )}
 
+          {/* Compact Selection Overview - Inside Model Selection */}
+          <div className="px-0 py-3 sm:py-4 border-b bg-gradient-to-b from-white/3 to-transparent transition-all duration-300 border-violet-400/40 bg-gradient-to-b from-violet-500/8 to-transparent">
+            {/* Ultra-compact horizontal layout */}
+            <div className="flex gap-3 sm:gap-4">
+              {/* Default Recommendation - Compact */}
+              <div className="flex-1 group relative bg-gradient-to-br from-amber-500/10 via-yellow-500/8 to-orange-500/10 border border-amber-400/25 rounded-xl p-3 sm:p-4 shadow-lg shadow-amber-500/15 backdrop-blur-sm overflow-hidden hover:shadow-amber-500/25 transition-all duration-300 cursor-pointer"
+                   onClick={() => onChange({ provider: 'groq', model: 'openai/gpt-oss-120b' })}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className="w-6 h-6 bg-gradient-to-br from-amber-400/25 to-yellow-400/25 rounded-lg flex items-center justify-center border border-amber-400/40">
+                      <Icons.Star size={12} className="text-amber-300" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">默认推荐</div>
+                    <div className="text-xs text-amber-200/80 font-medium">openai/gpt-oss-120b</div>
+                  </div>
+                  <div className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-200 border border-purple-400/30 font-medium">
+                    ⚡ GROQ
+                  </div>
+                </div>
+                <div className="text-xs text-gray-300 leading-tight">
+                  超快推理 + 官方品质
+                </div>
+              </div>
+
+              {/* Current Selection - Compact */}
+              <div className="flex-1 group relative bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-xl p-3 sm:p-4 shadow-lg shadow-blue-500/8 backdrop-blur-sm overflow-hidden hover:shadow-blue-500/15 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 shadow-sm ${
+                      selectedProvider === 'auto' ? 'bg-gradient-to-br from-yellow-500/25 to-amber-500/25 border-yellow-400/50' :
+                      selectedProvider === 'gemini' ? 'bg-gradient-to-br from-blue-500/25 to-cyan-500/25 border-blue-400/50' :
+                      selectedProvider === 'groq' ? 'bg-gradient-to-br from-purple-500/25 to-pink-500/25 border-purple-400/50' :
+                      'bg-gradient-to-br from-green-500/25 to-emerald-500/25 border-green-400/50'
+                    }`}>
+                      <Icons.Chip size={12} className={`${
+                        selectedProvider === 'auto' ? 'text-yellow-300' :
+                        selectedProvider === 'gemini' ? 'text-blue-300' :
+                        selectedProvider === 'groq' ? 'text-purple-300' :
+                        'text-green-300'
+                      }`} />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">当前选择</div>
+                    <div className="text-xs text-gray-300 truncate">{selectedModel || '默认模型'}</div>
+                  </div>
+                  <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    selectedProvider === 'auto' ? 'bg-yellow-500/15 text-yellow-200 border border-yellow-400/30' :
+                    selectedProvider === 'gemini' ? 'bg-blue-500/15 text-blue-200 border border-blue-400/30' :
+                    selectedProvider === 'groq' ? 'bg-purple-500/15 text-purple-200 border border-purple-400/30' :
+                    'bg-green-500/15 text-green-200 border border-green-400/30'
+                  }`}>
+                    {selectedProvider === 'auto' ? '🤖 AUTO' :
+                     selectedProvider === 'gemini' ? '🎯 GEMINI' :
+                     selectedProvider === 'groq' ? '⚡ GROQ' :
+                     '🏆 OPENAI'}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400 leading-tight">
+                  {selectedProvider === 'auto' ? '智能自动选择' :
+                   selectedProvider === 'gemini' ? '多模态支持' :
+                   selectedProvider === 'groq' ? '超快推理' :
+                   '业界标准'}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Optimized Platform Grid - Improved spacing and alignment */}
           {(() => {
             const groupedModels = groupModelsByProvider(modelOptions);
@@ -556,7 +630,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             ];
 
             return (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="flex flex-wrap gap-3 md:gap-4">
                 {platforms.map(platform => {
                   const models = groupedModels[platform.key];
                   const hasApiKey = platform.key === 'auto' || checkApiKeyAvailability(platform.key as ProviderKey);
@@ -567,7 +641,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   }
 
               return (
-                <div key={platform.key} className={`bg-gray-900/70 border rounded-2xl overflow-hidden hover:bg-gray-800/90 transition-all duration-300 shadow-lg hover:shadow-xl ${
+                <div key={platform.key} className={`flex-1 min-w-0 bg-gray-900/70 border rounded-2xl overflow-hidden hover:bg-gray-800/90 transition-all duration-300 shadow-lg hover:shadow-xl ${
                   hasApiKey
                     ? `border-gray-700/60 hover:border-${platform.color}-500/40 hover:shadow-${platform.color}-500/20`
                     : 'border-gray-700/60'
@@ -627,7 +701,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   {hasApiKey ? (
                     // Show models only when expanded
                     expandedPlatforms.has(platform.key) && (
-                      <div className="space-y-3 animate-in slide-in-from-top-2 duration-300 px-2 pb-4">
+                      <div className="space-y-3 animate-in slide-in-from-top-2 duration-300 px-0 pb-4">
                         {models.map((option, index) => (
                           <button
                             key={`${option.provider}-${option.model}-${index}`}
@@ -762,10 +836,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   ) : (
                     // Show API key notice or error with retry option
                     expandedPlatforms.has(platform.key) && (
-                      <div className="animate-in slide-in-from-top-2 duration-300 mx-2 mb-4">
+                      <div className="animate-in slide-in-from-top-2 duration-300 mx-0 mb-4">
                         {loadErrors[platform.key] ? (
                           /* Error Notice with Retry */
-                          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-4 shadow-sm">
+                          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl px-4 py-4 shadow-sm">
                             <div className="flex items-start gap-3">
                               <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center border border-red-500/40">
                                 <Icons.Error size={16} className="text-red-400" />
@@ -815,7 +889,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                           </div>
                         ) : (
                           /* Enhanced API Key Notice */
-                          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-4 shadow-sm">
+                          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl px-4 py-4 shadow-sm">
                             <div className="flex items-start gap-3">
                               <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center border border-amber-500/40 flex-shrink-0">
                                 <Icons.Info size={16} className="text-amber-400" />

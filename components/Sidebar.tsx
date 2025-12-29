@@ -21,7 +21,7 @@ interface SidebarProps {
   onToggleDesktop: () => void;
   selectedProvider: string;
   onModelSelectorOpen?: () => void; // Model selector callback
-  onSQLConsoleOpen?: () => void; // SQL console callback
+  onDatabaseManagementOpen?: () => void; // Database management callback
 }
 
 const SidebarComponent: React.FC<SidebarProps> = ({
@@ -42,7 +42,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({
     onToggleDesktop,
     selectedProvider,
     onModelSelectorOpen,
-    onSQLConsoleOpen
+    onDatabaseManagementOpen
 }) => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -150,14 +150,14 @@ const SidebarComponent: React.FC<SidebarProps> = ({
                 >
                     <Icons.Table size={16} />
                 </button>
-                {onSQLConsoleOpen && (
+                {onDatabaseManagementOpen && (
                     <button
-                        onClick={() => { onSQLConsoleOpen(); onCloseMobile(); }}
+                        onClick={() => { onDatabaseManagementOpen(); onCloseMobile(); }}
                         className="flex-1 flex items-center justify-center py-2 px-1 rounded-md transition-all duration-300 transform hover:scale-105 text-gray-500 hover:text-gray-300 hover:bg-white/5"
-                        title="SQL Console"
+                        title="Database Management"
                     >
-                        <Icons.Database size={16} />
-                    </button>
+                    <Icons.Database size={16} />
+                </button>
                 )}
                 <button
                     onClick={() => { onToggleDesktop(); onCloseMobile(); }}

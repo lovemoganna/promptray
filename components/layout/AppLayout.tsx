@@ -66,7 +66,7 @@ const MainContent: React.FC<MainContentProps> = ({ children }) => {
   return (
     <main className={`flex-1 relative z-10 flex flex-col transition-all duration-300 ${!state.isDesktopSidebarOpen ? 'w-full' : ''}`}>
       <div
-        className={`w-full h-full flex flex-col overflow-hidden transition-all duration-700 ${
+        className={`w-full h-full flex flex-col transition-all duration-700 ${
           !state.isDesktopSidebarOpen
             ? 'rounded-none border-0 mt-0 mb-0 shadow-none'
             : 'glass-panel border border-white/10 shadow-2xl rounded-3xl mt-4 md:mt-6 mb-4 md:mb-6 mx-4 md:mx-6 lg:mx-8'
@@ -148,12 +148,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <MainContent>
         {header}
         {children}
-
-        {/* Modal */}
-        <ErrorBoundary>
-          {modal}
-        </ErrorBoundary>
       </MainContent>
+
+      {/* Modal - Render at root level to avoid layout constraints */}
+      <ErrorBoundary>
+        {modal}
+      </ErrorBoundary>
 
       {/* Global Components */}
       <CommandPalette

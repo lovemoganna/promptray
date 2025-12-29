@@ -11,9 +11,11 @@ import type { PromptView, SortBy, SortOrder } from '../constants';
 export enum StorageBackend {
   LOCAL_STORAGE = 'localStorage',
   INDEXED_DB = 'indexedDB',
-  HYBRID = 'hybrid' // Try IndexedDB first, fallback to localStorage
+  HYBRID = 'hybrid', // Try IndexedDB first, fallback to localStorage
+  DUCKDB = 'duckdb' // DuckDB-WASM with OPFS persistence (experimental)
 }
 
+// Change this to StorageBackend.DUCKDB to use DuckDB-WASM
 const STORAGE_BACKEND: string = StorageBackend.HYBRID; // Configurable
 
 // Feature flags for gradual rollout
@@ -22,6 +24,7 @@ const FEATURE_FLAGS = {
   useIndexedDBForSettings: true,
   enableMigrationOnStartup: true, // Set to true to enable automatic migration
   keepLocalStorageBackup: true, // Keep localStorage as backup during transition
+  enableDuckDBExperimental: true, // Enable DuckDB-WASM features
 };
 
 const STORAGE_KEY = 'prompts_data_v2'; // Bump version to avoid conflict

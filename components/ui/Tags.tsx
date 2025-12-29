@@ -55,23 +55,33 @@ export const Tags: React.FC<TagsProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 p-1 bg-transparent min-h-[36px]">
-        {tags.map(tag => (
-          <span key={tag} className="flex items-center gap-1 text-xs font-medium bg-white/8 text-gray-200 px-1.5 py-0.5 rounded-full">
-            {tag}
-            <button onClick={() => onRemoveTag(tag)} className="hover:text-red-400 transition-colors">
-              <Icons.Close size={12} />
-            </button>
-          </span>
-        ))}
-        <input
-          type="text"
-          value={tagInput}
-          onChange={e => onInputChange(e.target.value)}
-          onKeyDown={onInputKeyDown}
-          className="bg-transparent border-none outline-none text-xs text-white flex-1 min-w-[80px] py-0.5 placeholder:text-gray-600"
-          placeholder={tags.length === 0 ? '输入标签并按 Enter...' : ''}
-        />
+      {/* 标签输入区域 - 统一协调的视觉设计 */}
+      <div className="relative">
+        <div className="flex flex-wrap gap-2 p-3 bg-gray-900/40 border border-white/10 rounded-lg min-h-[48px] focus-within:border-blue-400/50 focus-within:bg-gray-900/60 transition-all duration-200">
+          {tags.map(tag => (
+            <span key={tag} className="flex items-center gap-1.5 text-xs font-medium bg-blue-500/20 text-blue-200 px-2.5 py-1 rounded-full border border-blue-400/30">
+              {tag}
+              <button
+                onClick={() => onRemoveTag(tag)}
+                className="hover:text-red-400 hover:bg-red-500/20 rounded-full p-0.5 transition-all duration-150"
+                title={`删除标签 "${tag}"`}
+              >
+                <Icons.Close size={9} />
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={tagInput}
+            onChange={e => onInputChange(e.target.value)}
+            onKeyDown={onInputKeyDown}
+            className="bg-transparent border-none outline-none text-sm text-white flex-1 min-w-[120px] py-1 placeholder:text-gray-500 focus:placeholder:text-gray-400"
+            placeholder=""
+          />
+        </div>
+
+        {/* 简洁的装饰线 */}
+        <div className="absolute bottom-0 left-3 right-3 h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent"></div>
       </div>
 
       {suggestions.length > 0 && (

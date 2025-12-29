@@ -76,7 +76,7 @@ export const PromptExamplesTab: React.FC<PromptExamplesTabProps> = ({
     <div className="space-y-6 w-full animate-slide-up-fade">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: 示例系统说明 + AI 工具区 */}
-        <div className="lg:col-span-1 bg-gradient-to-br from-slate-950/90 via-slate-950/80 to-black/80 border border-white/10 rounded-theme p-5 backdrop-blur-xl shadow-xl shadow-black/40 space-y-4">
+        <div className="lg:col-span-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-theme p-5 backdrop-blur-xl shadow-xl shadow-black/40 space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-brand-500/15 rounded-lg border border-brand-500/30 shadow-lg shadow-brand-500/20">
               <Icons.List size={18} className="text-brand-400" />
@@ -385,7 +385,7 @@ export const PromptExamplesTab: React.FC<PromptExamplesTabProps> = ({
           </div>
 
           {!hasExamples && (
-            <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-theme bg-gradient-to-br from-slate-950/80 via-slate-950/70 to-black/80 backdrop-blur-xl">
+            <div className="text-center py-12 border-2 border-dashed border-[var(--color-border-primary)] rounded-theme bg-[var(--color-bg-secondary)] backdrop-blur-xl">
               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10 shadow-lg shadow-black/40">
                 <Icons.Sparkles size={22} className="text-brand-300" />
               </div>
@@ -427,7 +427,7 @@ export const PromptExamplesTab: React.FC<PromptExamplesTabProps> = ({
           {examples.map((ex, index) => (
             <div
               key={index}
-              className={`group relative bg-gradient-to-br from-slate-950/90 via-slate-950/80 to-black/80 border rounded-theme p-5 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 backdrop-blur-xl overflow-hidden ${
+              className={`group relative bg-[var(--color-bg-secondary)] border rounded-theme p-5 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 backdrop-blur-xl overflow-hidden ${
                 ex.mode === 'iterative' 
                   ? 'border-purple-500/30 hover:border-purple-500/50' 
                   : 'border-white/12 hover:border-brand-500/40'
@@ -520,7 +520,7 @@ export const PromptExamplesTab: React.FC<PromptExamplesTabProps> = ({
                   <textarea
                     value={ex.input}
                     onChange={(e) => onUpdateExample(index, 'input', e.target.value)}
-                    className="w-full h-36 bg-slate-950/90 border border-blue-500/30 rounded-lg p-4 text-sm font-mono text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-y transition-all hover:border-blue-400/70 shadow-inner shadow-black/80"
+                    className="w-full h-36 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-lg p-4 text-sm font-mono text-[var(--color-text-primary)] focus:border-[var(--color-brand-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/40 resize-y transition-all hover:border-[var(--color-brand-primary)]/70 shadow-inner shadow-black/80"
                     placeholder="例如：用户贴上了一段低质量代码，请你帮他重构并解释修改原因..."
                   />
                   <p className="text-[11px] text-gray-500">
@@ -561,7 +561,7 @@ export const PromptExamplesTab: React.FC<PromptExamplesTabProps> = ({
                   <textarea
                     value={ex.output}
                     onChange={(e) => onUpdateExample(index, 'output', e.target.value)}
-                    className={`w-full h-36 bg-slate-950/90 border rounded-lg p-4 text-sm font-mono text-slate-100 focus:outline-none focus:ring-2 resize-y transition-all shadow-inner shadow-black/80 ${
+                    className={`w-full h-36 bg-[var(--color-bg-primary)] border rounded-lg p-4 text-sm font-mono text-[var(--color-text-primary)] focus:outline-none focus:ring-2 resize-y transition-all shadow-inner shadow-black/80 ${
                       ex.mode === 'iterative'
                         ? 'border-purple-500/30 focus:border-purple-400 focus:ring-purple-500/40 hover:border-purple-400/70'
                         : 'border-brand-500/30 focus:border-brand-400 focus:ring-brand-500/40 hover:border-brand-400/70'

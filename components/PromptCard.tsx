@@ -158,37 +158,37 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
       selected: 'ring-1 ring-brand-500/60 ring-offset-1 ring-offset-slate-50'
     },
     dark: {
-      card: 'bg-slate-950/90 text-slate-50 border border-white/10 shadow-sm',
-      hover: 'hover:border-brand-500/40',
-      panel: 'border-white/10 bg-slate-900/70',
-      subtle: 'text-slate-300',
-      chip: 'bg-white/10 text-slate-100 border-white/10',
-      divider: 'border-white/10',
-      preview: 'border-white/10',
-      selected: 'ring-1 ring-brand-400/60 ring-offset-1 ring-offset-slate-950'
+      card: 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] border border-[var(--color-border-primary)] shadow-sm',
+      hover: 'hover:border-[var(--color-brand-primary)]/40',
+      panel: 'border-[var(--color-border-primary)] bg-[var(--color-bg-tertiary)]',
+      subtle: 'text-[var(--color-text-secondary)]',
+      chip: 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]',
+      divider: 'border-[var(--color-border-primary)]',
+      preview: 'border-[var(--color-border-primary)]',
+      selected: 'ring-1 ring-[var(--color-brand-primary)]/60 ring-offset-1 ring-offset-[var(--color-bg-primary)]'
     },
     accent: {
-      card: 'bg-slate-950 text-slate-50 border border-indigo-900/50 shadow-sm',
-      hover: 'hover:border-indigo-400/60',
-      panel: 'border-indigo-900/40 bg-slate-900/80',
-      subtle: 'text-slate-200',
-      chip: 'bg-indigo-500/10 text-indigo-100 border-indigo-400/30',
-      divider: 'border-white/10',
-      preview: 'border-indigo-900/50',
-      selected: 'ring-1 ring-indigo-400/60 ring-offset-1 ring-offset-slate-950'
+      card: 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] border border-[var(--color-border-primary)] shadow-sm',
+      hover: 'hover:border-[var(--color-brand-primary)]/60',
+      panel: 'border-[var(--color-border-primary)] bg-[var(--color-bg-tertiary)]',
+      subtle: 'text-[var(--color-text-secondary)]',
+      chip: 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]',
+      divider: 'border-[var(--color-border-primary)]',
+      preview: 'border-[var(--color-border-primary)]',
+      selected: 'ring-1 ring-[var(--color-brand-primary)]/60 ring-offset-1 ring-offset-[var(--color-bg-primary)]'
     }
   }[themeVariant];
 
   const selectedShadow = isTrash
-    ? 'ring-1 ring-rose-400/50 ring-offset-1 ring-offset-slate-950'
+    ? 'ring-1 ring-red-400/50 ring-offset-1 ring-offset-[var(--color-bg-primary)]'
     : tone.selected;
 
   const handleAction =
     (fn: ActionHandler) =>
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      fn(prompt.id, e);
-    };
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        fn(prompt.id, e);
+      };
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -198,9 +198,8 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
       data-theme={themeVariant}
       data-selected={isSelected}
       onClick={() => !isLoading && onOpen(prompt)}
-      className={`group relative flex w-full max-w-none flex-col rounded-xl transition-all duration-200 cursor-pointer overflow-hidden ${
-        tone.card
-      } ${tone.hover} ${isSelected ? selectedShadow : ''} ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
+      className={`group relative flex w-full max-w-none flex-col h-full rounded-xl transition-all duration-200 cursor-pointer overflow-hidden ${tone.card
+        } ${tone.hover} ${isSelected ? selectedShadow : ''} ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
       <div className="relative z-10 flex h-full flex-col gap-3 p-4">
@@ -233,7 +232,7 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
             {/* Title and Description */}
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-semibold leading-tight line-clamp-1">{prompt.title}</h3>
-              <p className={`text-xs leading-relaxed whitespace-nowrap overflow-hidden text-ellipsis ${tone.subtle}`}>
+              <p className={`text-xs leading-relaxed line-clamp-1 ${tone.subtle}`}>
                 {prompt.description}
               </p>
             </div>
@@ -262,9 +261,8 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className={`flex items-center gap-0 rounded-full border px-0.5 py-0.5 ${
-            themeVariant === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-          }`} onClick={stop}>
+          <div className={`flex items-center gap-0 rounded-full border px-0.5 py-0.5 ${themeVariant === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+            }`} onClick={stop}>
             {isTrash && onRestore ? (
               <button
                 onClick={handleAction(onRestore)}
@@ -320,7 +318,7 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
         </div>
 
         {/* Preview Section */}
-        <div className={`rounded-lg border ${tone.preview} bg-slate-950/40 dark:bg-slate-900/60`}>
+        <div className={`rounded-lg border ${tone.preview} bg-[var(--color-bg-secondary)]`}>
           <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
               <Icons.Sparkles size={12} />

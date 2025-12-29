@@ -956,10 +956,10 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-2 sm:p-3 md:p-6 animate-fade-in transition-all overflow-hidden" data-modal-overlay>
-      <div className="w-full max-w-[96vw] lg:max-w-6xl 2xl:max-w-[1500px] rounded-2xl bg-gray-950/95 border border-white/10 shadow-xl flex flex-col h-[92vh] md:h-[88vh] relative overflow-hidden animate-slide-up-fade text-sm sm:text-[15px] lg:text-base" data-modal-panel>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-md p-2 sm:p-3 md:p-4 animate-fade-in transition-all overflow-hidden" data-modal-overlay>
+      <div className="w-full max-w-[180vw] md:max-w-[calc(180vw-280px)] lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1400px] rounded-2xl bg-[var(--color-bg-card)] border border-[var(--color-border-primary)] shadow-xl flex flex-col max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] relative overflow-hidden animate-slide-up-fade text-[var(--color-text-primary)] mt-2 md:mt-4" data-modal-panel>
         {/* Header：简化为纯色条，减少视觉干扰 */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 sm:px-8 md:px-12 lg:px-8 py-6 md:py-8 border-b border-white/10 shrink-0 bg-gray-900/90 z-10 relative" data-modal-header>
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 md:px-8 lg:px-6 py-4 sm:py-6 md:py-8 border-b border-[var(--color-border-primary)] shrink-0 bg-[var(--color-bg-secondary)] z-10 relative" data-modal-header>
           <div className="flex items-center gap-3 sm:gap-4 max-w-full">
             <div className="flex items-center gap-1">
               <button
@@ -982,7 +982,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
             {initialData ? (
               <div className="flex flex-col min-w-0">
                 <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight line-clamp-1 max-w-[320px] sm:max-w-[420px] lg:max-w-[560px]">{formData.title}</h2>
-                <span className="text-[11px] sm:text-xs text-gray-500 font-mono opacity-70">ID: {initialData.id.slice(0, 8)}...</span>
+                <span className="text-[11px] sm:text-xs text-[var(--color-text-muted)] font-mono opacity-80">ID: {initialData.id.slice(0, 8)}...</span>
               </div>
             ) : (
               <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white tracking-tight">New Prompt</h2>
@@ -992,11 +992,12 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
           {/* 重新设计的工具栏 - 更协调的视觉层次 */}
           <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end">
 
-            {/* 状态指示器组 - 更突出但优雅 */}
+            {/* 状态指示器组 - 更突出更明显的未保存状态 */}
             {hasUnsavedChanges && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-full text-xs text-amber-200 font-medium shadow-lg backdrop-blur-sm">
-                <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse shadow-amber-400/50 shadow-[0_0_8px]"></div>
-                <span className="text-amber-100">未保存</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-red-500/20 border border-orange-400/40 rounded-lg text-sm text-orange-100 font-semibold shadow-xl backdrop-blur-sm animate-pulse ring-2 ring-orange-400/30">
+                <div className="w-3 h-3 bg-orange-400 rounded-full animate-ping shadow-orange-400/70 shadow-[0_0_12px] ring-2 ring-orange-400/50"></div>
+                <span className="text-orange-50 drop-shadow-sm">有未保存更改</span>
+                <div className="w-1.5 h-1.5 bg-orange-300 rounded-full animate-pulse"></div>
               </div>
             )}
 
@@ -1004,7 +1005,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
             <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg">
               <button
                 onClick={() => setShareMode(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-300 hover:text-white rounded-lg hover:bg-white/10 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 transform hover:scale-105 active:scale-95"
                 title="分享卡片"
               >
                 <Icons.Image size={16} />
@@ -1013,7 +1014,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
               <button
                 onClick={() => setShowSnippets(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-300 hover:text-white rounded-lg hover:bg-white/10 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 transform hover:scale-105 active:scale-95"
                 title="生成代码片段"
               >
                 <Icons.Code size={16} />
@@ -1021,15 +1022,22 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               </button>
             </div>
 
-            {/* 主导航标签组 - 更现代的设计 */}
-            <div className="flex items-center bg-gray-900/50 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg overflow-hidden">
+            {/* 主导航标签组 - 优化移动端体验 */}
+            <div
+              className="flex items-center bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-xl p-1 backdrop-blur-md shadow-lg overflow-x-auto custom-scrollbar scrollbar-thin"
+              role="tablist"
+              aria-label="Prompt 编辑标签页"
+            >
               <button
                 onClick={() => setActiveTab('preview')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap sm:px-3 sm:gap-2 ${
                   activeTab === 'preview'
-                    ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-white shadow-blue-500/25 shadow-[0_0_15px_rgba(59,130,246,0.15)] border border-blue-500/30'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-blue-500/25 to-cyan-500/25 text-white shadow-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)] border border-blue-500/40 font-bold'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] font-medium'
                   }`}
+                role="tab"
+                aria-selected={activeTab === 'preview'}
+                aria-controls="preview-panel"
                 title="预览模式"
               >
                 <Icons.Eye size={16} />
@@ -1037,11 +1045,14 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('edit')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap sm:px-3 sm:gap-2 ${
                   activeTab === 'edit'
-                    ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-white shadow-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.15)] border border-emerald-500/30'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-white shadow-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] border border-emerald-500/40 font-bold'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] font-medium'
                   }`}
+                role="tab"
+                aria-selected={activeTab === 'edit'}
+                aria-controls="edit-panel"
                 title="编辑模式"
               >
                 <Icons.Edit size={16} />
@@ -1049,11 +1060,14 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('examples')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap sm:px-3 sm:gap-2 ${
                   activeTab === 'examples'
-                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white shadow-purple-500/25 shadow-[0_0_15px_rgba(147,51,234,0.15)] border border-purple-500/30'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-purple-500/25 to-pink-500/25 text-white shadow-purple-500/30 shadow-[0_0_20px_rgba(147,51,234,0.2)] border border-purple-500/40 font-bold'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] font-medium'
                   }`}
+                role="tab"
+                aria-selected={activeTab === 'examples'}
+                aria-controls="examples-panel"
                 title="示例管理"
               >
                 <Icons.List size={16} />
@@ -1061,11 +1075,14 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('test')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap sm:px-3 sm:gap-2 ${
                   activeTab === 'test'
-                    ? 'bg-gradient-to-r from-brand-500/20 to-brand-600/20 text-white shadow-brand-500/30 shadow-[0_0_20px_rgba(var(--c-brand),0.3)] border border-brand-500/40'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-brand-500/30 to-brand-600/30 text-white shadow-brand-500/40 shadow-[0_0_25px_rgba(var(--c-brand),0.4)] border border-brand-500/50 font-bold'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] font-medium'
                   }`}
+                role="tab"
+                aria-selected={activeTab === 'test'}
+                aria-controls="test-panel"
                 title="测试运行"
               >
                 <Icons.Run size={16} />
@@ -1074,11 +1091,14 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
               {initialData && (
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                  className={`flex items-center gap-1.5 px-2.5 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 whitespace-nowrap sm:px-3 sm:gap-2 ${
                     activeTab === 'history'
-                      ? 'bg-gradient-to-r from-gray-500/20 to-slate-500/20 text-white shadow-gray-500/25 shadow-[0_0_15px_rgba(107,114,128,0.15)] border border-gray-500/30'
-                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                      ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/25 to-[var(--color-brand-secondary)]/25 text-[var(--color-text-primary)] shadow-[var(--color-brand-primary)]/30 shadow-[0_0_20px_var(--color-brand-primary)] border border-[var(--color-brand-primary)]/40 font-bold'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)] font-medium'
                   }`}
+                  role="tab"
+                  aria-selected={activeTab === 'history'}
+                  aria-controls="history-panel"
                   title="版本历史"
                 >
                   <Icons.History size={16} />
@@ -1090,7 +1110,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
             {/* 关闭按钮 - 更现代的设计 */}
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-xl hover:bg-red-500/10 transition-all duration-200 transform hover:scale-105 active:scale-95 border border-transparent hover:border-red-500/20 backdrop-blur-sm"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-200 hover:text-white rounded-xl hover:bg-red-500/10 transition-all duration-200 transform hover:scale-105 active:scale-95 border border-transparent hover:border-red-500/20 backdrop-blur-sm"
               title="关闭对话框"
             >
               <Icons.Close size={18} />
@@ -1100,10 +1120,10 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
         </div>
 
         {/* Enhanced Content Area: 左列主内容 + 右列元数据（响应式） */}
-        <div className="flex-1 overflow-hidden px-0" data-modal-body>
+        <div className="flex-1 min-h-0" data-modal-body>
           <div className="h-full flex flex-col lg:flex-row">
             {/* Left column: 主内容（自适应宽度） */}
-            <div className="flex-1 overflow-y-auto px-6 sm:px-8 md:px-12 lg:px-8 py-6 md:py-8 custom-scrollbar bg-gradient-to-b from-slate-950 via-slate-950 to-black text-sm sm:text-[15px] lg:text-base">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 custom-scrollbar bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]">
               {activeTab === 'preview' && (
                 <PromptPreviewTab
                   formData={formData}

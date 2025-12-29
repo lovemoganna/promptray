@@ -11,7 +11,6 @@ import { KnowledgeTable } from './components/KnowledgeTable';
 import { CommandPalette } from './components/CommandPalette';
 import { PromptCard } from './components/PromptCard';
 import { StorageMigrationModal } from './components/settings/StorageMigrationModal';
-import { SQLConsole } from './components/SQLConsole';
 import { ModelSelector } from './components/ModelSelector';
 import { Prompt, PromptFormData, Theme, PromptVersion } from './types';
 import { getModelsForProvider, ProviderKey } from './services/modelRegistry';
@@ -293,7 +292,7 @@ const App: React.FC = () => {
   // Storage Migration Modal State
   const [isStorageMigrationOpen, setIsStorageMigrationOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-  const [sqlConsoleOpen, setSqlConsoleOpen] = useState(false);
+  const [databaseManagementOpen, setDatabaseManagementOpen] = useState(false);
 
   // Model selector state for UX enhancements
   const [modelSelectorFocusMode, setModelSelectorFocusMode] = useState<'overview' | 'selection'>('overview');
@@ -653,7 +652,6 @@ const App: React.FC = () => {
       setCurrentView(view);
       // Close all modals when switching views
       setModelSelectorOpen(false);
-      setSqlConsoleOpen(false);
       setIsStorageMigrationOpen(false);
       setIsModalOpen(false);
       // Reset filters so the view always shows full coverage (user feedback)
@@ -667,7 +665,7 @@ const App: React.FC = () => {
     return (
     <div className={`h-screen w-full surface-shell ${currentThemeId === 'theme-light' ? 'text-slate-900' : 'text-slate-100'} overflow-hidden text-base transition-all duration-700 relative selection:bg-brand-500/30 animate-theme-transition ${
       isDesktopSidebarOpen
-        ? 'grid grid-cols-[256px_1fr] items-start'
+        ? 'grid grid-cols-[256px_1fr] items-stretch'
         : 'flex flex-col'
     }`} style={{ fontFamily: 'var(--font-ui)' }}>
       
@@ -710,17 +708,17 @@ const App: React.FC = () => {
           setPreviouslyFocusedElement(document.activeElement);
 
           // Close all other modals before opening model selector
-          setSqlConsoleOpen(false);
           setIsStorageMigrationOpen(false);
           setIsModalOpen(false);
+          setDatabaseManagementOpen(false);
           setModelSelectorOpen(true);
         }, [])}
-        onSQLConsoleOpen={useCallback(() => {
-          // Close all other modals before opening SQL console
+        onDatabaseManagementOpen={useCallback(() => {
+          // Close all other modals before opening database management
           setModelSelectorOpen(false);
           setIsStorageMigrationOpen(false);
           setIsModalOpen(false);
-          setSqlConsoleOpen(true);
+          setDatabaseManagementOpen(true);
         }, [])}
       />
 
@@ -1137,7 +1135,7 @@ const App: React.FC = () => {
                 aria-describedby="model-selector-description"
             >
                 <div
-                    className={`w-full max-w-[95vw] bg-gradient-to-br from-gray-900/95 via-slate-900/98 to-gray-900/95 border rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up-fade backdrop-blur-2xl ring-1 transition-all duration-300 ${
+                    className={`w-full max-w-[95vw] bg-[var(--color-bg-secondary)] border-[var(--color-border-primary)] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-slide-up-fade backdrop-blur-2xl ring-1 transition-all duration-300 ${
                         modelSelectorFocusMode === 'overview'
                             ? 'border-violet-400/30 ring-violet-400/20 shadow-violet-500/20'
                             : 'border-blue-400/30 ring-blue-400/20 shadow-blue-500/20'
@@ -1211,94 +1209,24 @@ const App: React.FC = () => {
 
                     {/* Enhanced Content - Improved visual hierarchy and spacing */}
                     <div className="max-h-[85vh] overflow-y-auto custom-scrollbar">
-                            {/* Compact Selection Overview */}
-                            <div className={`px-4 py-3 sm:px-6 sm:py-4 border-b bg-gradient-to-b from-white/3 to-transparent transition-all duration-300 ${
-                                modelSelectorFocusMode === 'overview'
-                                    ? 'border-violet-400/40 bg-gradient-to-b from-violet-500/8 to-transparent'
-                                    : 'border-white/8'
-                            }`}>
-                                {/* Ultra-compact horizontal layout */}
-                                <div className="flex gap-3 sm:gap-4">
-                                    {/* Default Recommendation - Compact */}
-                                    <div className="flex-1 group relative bg-gradient-to-br from-amber-500/10 via-yellow-500/8 to-orange-500/10 border border-amber-400/25 rounded-xl p-3 sm:p-4 shadow-lg shadow-amber-500/15 backdrop-blur-sm overflow-hidden hover:shadow-amber-500/25 transition-all duration-300 cursor-pointer">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="relative">
-                                                <div className="w-6 h-6 bg-gradient-to-br from-amber-400/25 to-yellow-400/25 rounded-lg flex items-center justify-center border border-amber-400/40">
-                                                    <Icons.Star size={12} className="text-amber-300" />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-bold text-white truncate">默认推荐</div>
-                                                <div className="text-xs text-amber-200/80 font-medium">openai/gpt-oss-120b</div>
-                                            </div>
-                                            <div className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-200 border border-purple-400/30 font-medium">
-                                                ⚡ GROQ
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-gray-300 leading-tight">
-                                            超快推理 + 官方品质
-                                        </div>
-                                    </div>
-
-                                    {/* Current Selection - Compact */}
-                                    <div className="flex-1 group relative bg-gradient-to-br from-slate-800/50 via-gray-800/40 to-slate-800/50 border border-white/15 rounded-xl p-3 sm:p-4 shadow-lg shadow-blue-500/8 backdrop-blur-sm overflow-hidden hover:shadow-blue-500/15 transition-all duration-300">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div className="relative">
-                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 shadow-sm ${
-                                                    selectedProvider === 'auto' ? 'bg-gradient-to-br from-yellow-500/25 to-amber-500/25 border-yellow-400/50' :
-                                                    selectedProvider === 'gemini' ? 'bg-gradient-to-br from-blue-500/25 to-cyan-500/25 border-blue-400/50' :
-                                                    selectedProvider === 'groq' ? 'bg-gradient-to-br from-purple-500/25 to-pink-500/25 border-purple-400/50' :
-                                                    'bg-gradient-to-br from-green-500/25 to-emerald-500/25 border-green-400/50'
-                                                }`}>
-                                                    <Icons.Chip size={12} className={`${
-                                                        selectedProvider === 'auto' ? 'text-yellow-300' :
-                                                        selectedProvider === 'gemini' ? 'text-blue-300' :
-                                                        selectedProvider === 'groq' ? 'text-purple-300' :
-                                                        'text-green-300'
-                                                    }`} />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-bold text-white truncate">当前选择</div>
-                                                <div className="text-xs text-gray-300 truncate">{selectedModel || '默认模型'}</div>
-                                            </div>
-                                            <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                                selectedProvider === 'auto' ? 'bg-yellow-500/15 text-yellow-200 border border-yellow-400/30' :
-                                                selectedProvider === 'gemini' ? 'bg-blue-500/15 text-blue-200 border border-blue-400/30' :
-                                                selectedProvider === 'groq' ? 'bg-purple-500/15 text-purple-200 border border-purple-400/30' :
-                                                'bg-green-500/15 text-green-200 border border-green-400/30'
-                                            }`}>
-                                                {selectedProvider === 'auto' ? '🤖 AUTO' :
-                                                 selectedProvider === 'gemini' ? '🎯 GEMINI' :
-                                                 selectedProvider === 'groq' ? '⚡ GROQ' :
-                                                 '🏆 OPENAI'}
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-gray-400 leading-tight">
-                                            {selectedProvider === 'auto' ? '智能自动选择' :
-                                             selectedProvider === 'gemini' ? '多模态支持' :
-                                             selectedProvider === 'groq' ? '超快推理' :
-                                             '业界标准'}
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                        </div>
-
                         {/* Enhanced Model Selection Section - Mobile Optimized */}
                         <div className="p-4 sm:p-8">
+<<<<<<< Updated upstream
 
                             {/* Enhanced Model Selector Container with focus feedback - Mobile Optimized */}
                             <div className={`relative bg-gradient-to-br from-gray-800/40 via-slate-800/35 to-gray-800/40 border rounded-2xl sm:rounded-3xl pt-2 sm:pt-4 p-4 sm:p-8 shadow-2xl backdrop-blur-sm overflow-hidden transition-all duration-300 ${
+=======
+                            {/* Enhanced Model Selector Container with focus feedback - Mobile Optimized */}
+                            <div className={`relative bg-[var(--color-bg-secondary)] border-[var(--color-border-primary)] rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl backdrop-blur-sm overflow-hidden transition-all duration-300 ${
+>>>>>>> Stashed changes
                                 modelSelectorFocusMode === 'selection'
                                     ? 'border-blue-400/50 ring-2 ring-blue-400/20 shadow-blue-500/30'
                                     : 'border-white/10'
                             }`}>
                                 {/* Subtle animated background */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 animate-pulse opacity-30"></div>
-                                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-cyan-400/10 to-transparent rounded-full -translate-y-20 translate-x-20"></div>
-                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-violet-400/10 to-transparent rounded-full translate-y-16 -translate-x-16"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/8 via-purple-500/6 to-violet-500/8 opacity-40"></div>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-400/15 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-violet-400/12 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
 
                                 <div className="relative z-10">
                                     <ModelSelector
@@ -1309,6 +1237,8 @@ const App: React.FC = () => {
                                             setModelSelectorOpen(false);
                                         }}
                                         className="w-full"
+                                        selectedProvider={selectedProvider}
+                                        selectedModel={selectedModel}
                                         lastRuntime={{
                                             provider: selectedProvider,
                                             model: selectedModel
@@ -1323,11 +1253,38 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* SQL Console Modal - Optimized responsive sizing */}
-        {sqlConsoleOpen && (
+        {/* Database Management Modal - Placeholder */}
+        {databaseManagementOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in">
                 <div className="w-full h-full max-w-7xl max-h-[90vh] bg-gray-900/98 border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-slide-up-fade backdrop-blur-xl">
-                    <SQLConsole onClose={() => setSqlConsoleOpen(false)} />
+                    <div className="flex flex-col h-full">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-white/10">
+                            <h2 className="text-xl font-semibold text-white">Database Management</h2>
+                            <button
+                                onClick={() => setDatabaseManagementOpen(false)}
+                                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                title="Close"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 p-6">
+                            <div className="flex items-center justify-center h-full">
+                                <div className="text-center text-gray-400">
+                                    <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <h3 className="text-lg font-medium text-gray-300 mb-2">Database Management</h3>
+                                    <p className="text-sm">This feature is coming soon...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )}

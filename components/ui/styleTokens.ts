@@ -165,7 +165,109 @@ export const LAYOUT = {
 // 2. 主题变量系统 (Theme System)
 // =============================================================================
 
-// 统一的CSS变量颜色系统
+// 统一的设计色彩令牌系统
+export const DESIGN_TOKENS = {
+  // 基础色彩
+  colors: {
+    // 主色调 - 蓝色系
+    primary: {
+      50: 'hsl(217, 91%, 95%)',
+      100: 'hsl(217, 91%, 90%)',
+      200: 'hsl(217, 91%, 80%)',
+      300: 'hsl(217, 91%, 70%)',
+      400: 'hsl(217, 91%, 60%)',
+      500: 'hsl(217, 91%, 50%)', // 主色
+      600: 'hsl(217, 91%, 40%)',
+      700: 'hsl(217, 91%, 30%)',
+      800: 'hsl(217, 91%, 20%)',
+      900: 'hsl(217, 91%, 10%)',
+    },
+
+    // 成功色 - 绿色系
+    success: {
+      50: 'hsl(142, 76%, 95%)',
+      100: 'hsl(142, 76%, 90%)',
+      200: 'hsl(142, 76%, 80%)',
+      300: 'hsl(142, 76%, 70%)',
+      400: 'hsl(142, 76%, 60%)',
+      500: 'hsl(142, 76%, 50%)', // 主色
+      600: 'hsl(142, 76%, 40%)',
+      700: 'hsl(142, 76%, 30%)',
+      800: 'hsl(142, 76%, 20%)',
+      900: 'hsl(142, 76%, 10%)',
+    },
+
+    // 警告色 - 橙色系
+    warning: {
+      50: 'hsl(38, 92%, 95%)',
+      100: 'hsl(38, 92%, 90%)',
+      200: 'hsl(38, 92%, 80%)',
+      300: 'hsl(38, 92%, 70%)',
+      400: 'hsl(38, 92%, 60%)',
+      500: 'hsl(38, 92%, 50%)', // 主色
+      600: 'hsl(38, 92%, 40%)',
+      700: 'hsl(38, 92%, 30%)',
+      800: 'hsl(38, 92%, 20%)',
+      900: 'hsl(38, 92%, 10%)',
+    },
+
+    // 错误色 - 红色系
+    error: {
+      50: 'hsl(0, 84%, 95%)',
+      100: 'hsl(0, 84%, 90%)',
+      200: 'hsl(0, 84%, 80%)',
+      300: 'hsl(0, 84%, 70%)',
+      400: 'hsl(0, 84%, 60%)',
+      500: 'hsl(0, 84%, 50%)', // 主色
+      600: 'hsl(0, 84%, 40%)',
+      700: 'hsl(0, 84%, 30%)',
+      800: 'hsl(0, 84%, 20%)',
+      900: 'hsl(0, 84%, 10%)',
+    },
+
+    // 中性色 - 灰色系
+    neutral: {
+      50: 'hsl(210, 20%, 98%)',
+      100: 'hsl(210, 20%, 95%)',
+      200: 'hsl(210, 20%, 90%)',
+      300: 'hsl(210, 20%, 85%)',
+      400: 'hsl(210, 20%, 70%)',
+      500: 'hsl(210, 20%, 50%)',
+      600: 'hsl(210, 20%, 30%)',
+      700: 'hsl(210, 20%, 20%)',
+      800: 'hsl(210, 20%, 15%)',
+      900: 'hsl(210, 20%, 10%)',
+    },
+  },
+
+  // 语义色彩映射
+  semantic: {
+    primary: 'hsl(217, 91%, 50%)',
+    secondary: 'hsl(210, 20%, 70%)',
+    success: 'hsl(142, 76%, 50%)',
+    warning: 'hsl(38, 92%, 50%)',
+    error: 'hsl(0, 84%, 50%)',
+    info: 'hsl(217, 91%, 50%)',
+
+    // 文字色彩
+    text: {
+      primary: 'hsl(210, 20%, 10%)',   // 深色文字
+      secondary: 'hsl(210, 20%, 30%)', // 次级文字
+      tertiary: 'hsl(210, 20%, 50%)',  // 辅助文字
+      inverse: 'hsl(210, 20%, 98%)',   // 深色背景上的文字
+    },
+
+    // 背景色彩
+    background: {
+      primary: 'hsl(210, 20%, 98%)',
+      secondary: 'hsl(210, 20%, 95%)',
+      tertiary: 'hsl(210, 20%, 90%)',
+      overlay: 'hsla(210, 20%, 10%, 0.8)',
+    },
+  },
+} as const;
+
+// 统一的CSS变量颜色系统 (向后兼容)
 export const THEME_COLORS = {
   // 背景色系
   bg: {
@@ -419,8 +521,8 @@ export const buttonVariants = {
   ghost: `${buttonBaseClass} bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-white/10`,
 };
 
-// 编辑区域样式
-export const editorClass = `w-full ${colors.bg.secondary} ${colors.border.secondary} ${spacing.borderRadius} ${spacing.padding.input} text-sm font-mono ${colors.text.primary} leading-relaxed`;
+// 编辑区域样式 - 提升深色背景下的对比度
+export const editorClass = `w-full ${colors.bg.cardDarker} ${colors.border.secondary} ${spacing.borderRadius} ${spacing.padding.input} text-sm font-mono ${colors.text.primary} leading-relaxed`;
 
 // 展开/折叠容器
 export const collapsibleClass = `${colors.bg.tertiary} ${colors.border.primary} ${spacing.borderRadius} p-2 transition-all`;
@@ -483,6 +585,116 @@ export type ColorVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type CardVariant = 'default' | 'elevated' | 'glass' | 'flat';
 export type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'caption' | 'label';
 export type InputVariant = 'default' | 'error' | 'success';
+
+// =============================================================================
+// 5. PromptEditTab 区域统一样式系统 (PromptEditTab Section Styles)
+// =============================================================================
+
+// 区域容器样式系统 - 确保三个区域视觉统一
+export const SECTION_STYLES = {
+  // 区域容器基础样式
+  container: {
+    base: 'bg-[var(--color-bg-card)] border border-[var(--color-border-primary)] rounded-lg transition-all duration-300',
+    padding: 'p-6',
+    spacing: 'space-y-6',
+    // 区域特色边框 - 区分不同区域
+    accent: {
+      basic: 'border-l-4 border-l-gray-400/50',      // 基础信息 - 灰色
+      meta: 'border-l-4 border-l-purple-400/50',      // 元数据 - 紫色
+      prompt: 'border-l-4 border-l-blue-400/50'       // 提示词 - 蓝色
+    }
+  },
+
+  // 内容层次样式 - 统一字体和间距
+  content: {
+    // 区域标题 (如：基础信息、参照示例)
+    sectionTitle: 'text-sm font-semibold uppercase tracking-wider flex items-center gap-2 mb-4',
+    sectionTitleColor: 'text-[var(--color-text-primary)]',
+
+    // 子区域标题 (如：中文提示词、英文提示词)
+    subsectionTitle: 'text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-2',
+    subsectionTitleColor: 'text-[var(--color-text-secondary)]',
+
+    // 字段标签
+    fieldLabel: 'text-xs font-medium uppercase tracking-wider mb-2 block',
+    fieldLabelColor: 'text-[var(--color-text-muted)]',
+
+    // 字段描述
+    fieldDescription: 'text-xs mt-1',
+    fieldDescriptionColor: 'text-[var(--color-text-secondary)]',
+
+    // 输入框统一样式
+    input: 'w-full bg-[var(--color-bg-tertiary)] border border-[var(--color-border-primary)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-all duration-200 focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20',
+
+    // 选择器统一样式
+    select: 'w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-md px-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-primary)]/50 focus:ring-1 focus:ring-[var(--color-brand-primary)]/30 transition-all appearance-none cursor-pointer',
+  },
+
+  // 图标规范系统 - 统一图标大小和颜色
+  icons: {
+    // 区域指示图标
+    section: { size: 16, className: 'text-[var(--color-text-accent)]' },
+
+    // 操作按钮图标
+    action: { size: 14, className: 'text-[var(--color-text-secondary)]' },
+
+    // 状态指示图标
+    status: { size: 12, className: 'text-[var(--color-text-secondary)]' },
+
+    // 小指示点
+    indicator: { size: 8, variants: {
+      gray: 'text-gray-400',
+      blue: 'text-blue-400',
+      green: 'text-green-400',
+      purple: 'text-purple-400',
+      red: 'text-red-400'
+    }},
+
+    // 展开/收起图标
+    expand: { size: 12, className: 'text-[var(--color-text-muted)]' },
+  },
+
+  // 按钮统一样式系统
+  buttons: {
+    // 主操作按钮 (保存、添加等)
+    primary: 'px-4 py-2 text-sm font-medium bg-gradient-to-r from-[var(--color-brand-primary)]/80 to-[var(--color-brand-secondary)]/80 hover:from-[var(--color-brand-primary)]/90 hover:to-[var(--color-brand-secondary)]/90 text-white border border-[var(--color-brand-primary)]/50 hover:border-[var(--color-brand-primary)]/70 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex items-center justify-center gap-2',
+
+    // 次操作按钮 (取消、编辑等)
+    secondary: 'px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] hover:border-[var(--color-border-accent)] rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95',
+
+    // 图标按钮
+    icon: 'p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95',
+
+    // 开关按钮 (自动保存开关)
+    toggle: 'relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--color-bg-primary)] disabled:opacity-50',
+    toggleOn: 'bg-[var(--color-brand-primary)] shadow-lg',
+    toggleOff: 'bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)]',
+    toggleThumb: 'inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200',
+    toggleThumbOn: 'translate-x-6',
+    toggleThumbOff: 'translate-x-1',
+  },
+
+  // 状态指示器样式
+  status: {
+    indicator: 'w-2 h-2 rounded-full',
+    variants: {
+      success: 'bg-green-400',
+      error: 'bg-red-400',
+      warning: 'bg-yellow-400',
+      info: 'bg-blue-400',
+      loading: 'bg-[var(--color-brand-primary)] animate-pulse'
+    },
+    text: 'text-xs font-medium transition-colors',
+    textVariants: {
+      success: 'text-green-300',
+      error: 'text-red-300',
+      warning: 'text-yellow-300',
+      info: 'text-blue-300',
+      loading: 'text-[var(--color-brand-primary)]',
+      muted: 'text-[var(--color-text-muted)]'
+    }
+  }
+} as const;
 
 // =============================================================================
 // 5. 样式工具函数 (Utility Functions)

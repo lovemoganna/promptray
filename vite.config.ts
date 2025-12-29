@@ -31,11 +31,24 @@ export default defineConfig(({ mode }) => {
       }),
       'process.env': {}
     },
+    // Optimize DuckDB-WASM handling
+    optimizeDeps: {
+      exclude: ['@duckdb/duckdb-wasm']
+    },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
       // Ensure empty output directory before build
       emptyOutDir: true,
+      // Increase chunk size limit for DuckDB-WASM
+      chunkSizeWarningLimit: 5000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            duckdb: ['@duckdb/duckdb-wasm']
+          }
+        }
+      }
     }
   };
 });

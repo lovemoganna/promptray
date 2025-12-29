@@ -5,23 +5,16 @@ import PromptMetaPanel from './PromptMetaPanel';
 // PromptMetaPanel: right-side metadata column
 import Tags from '../ui/Tags';
 import {
-  cardClass,
-  innerInputClass,
-  compactSelectClass,
-  labelClass,
   buttonVariants,
   editorClass,
-  statusIndicator,
   colors,
   // 新增的统一样式
-  headingClass,
-  subheadingClass,
   formInputClass,
-  autoSaveButtonClass,
   emptyStateClass,
   iconContainerClass,
   exampleCardClass,
-  tokenCountClass
+  // 新增的区域统一样式系统
+  SECTION_STYLES
 } from '../ui/styleTokens';
 
 // =============================================================================
@@ -111,30 +104,6 @@ const createActionButton = (
   </button>
 );
 
-  // 统一的加载状态按钮
-  const createLoadingButton = (
-    isLoading: boolean,
-    loadingText: string,
-    children: React.ReactNode,
-    variant: keyof typeof buttonVariants = 'secondary',
-    disabled: boolean = false,
-    title?: string
-  ) => (
-    <button
-      disabled={disabled || isLoading}
-      className={`${buttonVariants[variant]} ${isLoading ? 'animate-pulse' : ''}`}
-      title={isLoading ? loadingText : title}
-    >
-      {isLoading ? (
-        <span className="flex items-center gap-2">
-          <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-          {loadingText}
-        </span>
-      ) : (
-        children
-      )}
-    </button>
-  );
 
 
 interface PromptEditTabProps {
@@ -178,6 +147,9 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
   isTagging,
   onFormDataChange,
   onAutoMetadata,
+  onOptimizeSystem,
+  onTranslateToEnglish,
+  onOptimizePrompt,
   onAutoTag,
   onTagInputChange,
   onTagKeyDown,
@@ -328,26 +300,31 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
   return (
     <div>
       {/* Edit controls: placed inside Edit tab (top-right) */}
-        <div className="flex justify-end mb-3">
-          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
-          {initialData && onDuplicate && (
-            createActionButton(
-              onDuplicate,
-              <span className="ml-2 hidden sm:inline">复制</span>,
-              'ghost',
-              false,
-              "复制提示词"
-            )
-          )}
-          {createActionButton(
-            onCancel,
-            '取消',
-            'ghost',
-            false,
-            "取消编辑"
-          )}
+        {/* 优化按钮组 - 移动端友好 */}
+        <div className="flex justify-end mb-4">
+          {/* 桌面端：水平排列 */}
+          <div className="hidden sm:flex items-center gap-2">
+            {initialData && onDuplicate && (
+              <button
+                onClick={onDuplicate}
+                className={SECTION_STYLES.buttons.secondary}
+                title="复制提示词"
+              >
+                <Icons.Copy size={SECTION_STYLES.icons.action.size} />
+                <span>复制</span>
+              </button>
+            )}
+            {/* 取消按钮 - 次级操作 */}
+            <button
+              onClick={onCancel}
+              className={SECTION_STYLES.buttons.secondary}
+              title="取消编辑"
+            >
+              取消
+            </button>
 
-          <button
+            {/* 保存按钮 - 主要操作，最大最突出 */}
+            <button
             onClick={() => {
               if (!isFormValid) {
                 setTitleTouched(true);
@@ -364,61 +341,139 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             disabled={!isFormValid}
             className={`${
               isFormValid
-                ? buttonVariants.secondary
-                : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
-            } px-6 py-2.5 text-sm font-semibold relative overflow-hidden group disabled:opacity-50`}
+                ? SECTION_STYLES.buttons.primary
+                : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25 border border-red-500/30 rounded-lg px-6 py-2.5 text-sm font-semibold relative overflow-hidden group disabled:opacity-50 transition-all duration-200'
+            }`}
             title={!isFormValid ? getValidationMessage() : "保存更改"}
           >
             <span className="relative z-10 flex items-center gap-2">
-              {!isFormValid && <Icons.Error size={14} />}
-              {isFormValid && <Icons.Check size={14} />}
+              {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
+              {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
               保存
             </span>
           </button>
 
-          <button
-            onClick={() => onToggleAutoSave && onToggleAutoSave()}
-            disabled={isAutoSaving}
-            className={`${autoSaveButtonClass} ${isAutoSaving ? 'animate-pulse' : ''}`}
-            title="切换自动保存"
-          >
-            {isAutoSaveEnabled ? (
-              isAutoSaving ? (
-                <span className="flex items-center gap-2 ml-1">
-                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                  保存中...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 ml-1">
-                  <Icons.Check size={14} className="text-green-400" />
-                  自动保存：开
-                </span>
-              )
-            ) : (
-              <span className="flex items-center gap-2 ml-1">
-                <Icons.Close size={14} className="text-gray-400" />
-                自动保存：关
+          {/* 自动保存开关组件 - 优化版 */}
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${SECTION_STYLES.content.fieldLabelColor}`}>自动保存</span>
+            <button
+              onClick={() => onToggleAutoSave && onToggleAutoSave()}
+              disabled={isAutoSaving}
+              className={`${SECTION_STYLES.buttons.toggle} ${
+                isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleOn : SECTION_STYLES.buttons.toggleOff
+              } ${isAutoSaving ? 'animate-pulse' : ''}`}
+              title={isAutoSaveEnabled ? '关闭自动保存' : '开启自动保存'}
+            >
+              <span
+                className={`${SECTION_STYLES.buttons.toggleThumb} ${
+                  isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleThumbOn : SECTION_STYLES.buttons.toggleThumbOff
+                }`}
+              />
+              {/* 加载状态指示器 */}
+              {isAutoSaving && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin"></div>
+                </div>
+              )}
+            </button>
+            {/* 紧凑的状态指示文字 */}
+            <div className="flex items-center gap-1">
+              <div className={`${SECTION_STYLES.status.indicator} ${
+                isAutoSaving ? SECTION_STYLES.status.variants.loading :
+                isAutoSaveEnabled ? SECTION_STYLES.status.variants.success : 'bg-gray-400'
+              }`}></div>
+              <span className={`${SECTION_STYLES.status.text} ${
+                isAutoSaving ? SECTION_STYLES.status.textVariants.loading :
+                isAutoSaveEnabled ? SECTION_STYLES.status.textVariants.success : SECTION_STYLES.status.textVariants.muted
+              }`}>
+                {isAutoSaving ? '保存中' : (isAutoSaveEnabled ? '已开启' : '已关闭')}
               </span>
-            )}
-          </button>
+            </div>
+          </div>
+
+          {/* 移动端：垂直排列，全宽按钮 */}
+          <div className="flex flex-col gap-2 sm:hidden w-full max-w-xs mx-auto">
+            {/* 保存按钮 - 移动端置顶，主要操作 */}
+            <button
+              onClick={() => {
+                if (!isFormValid) {
+                  setTitleTouched(true);
+                  // Scroll to first error field
+                  const titleInput = document.querySelector('input[type="text"][placeholder*="标题"]') as HTMLInputElement;
+                  if (titleInput && !titleValid) {
+                    titleInput.focus();
+                    titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                  return;
+                }
+                onSaveClick && onSaveClick();
+                // 添加保存成功的视觉反馈
+                setTimeout(() => {
+                  const button = document.activeElement as HTMLButtonElement;
+                  if (button && button.textContent?.includes('保存')) {
+                    button.classList.add('animate-pulse', 'bg-green-500/20', 'border-green-500/40');
+                    setTimeout(() => {
+                      button.classList.remove('animate-pulse', 'bg-green-500/20', 'border-green-500/40');
+                    }, 1000);
+                  }
+                }, 100);
+              }}
+              disabled={!isFormValid}
+              className={`${
+                isFormValid
+                  ? 'bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-400/90 hover:to-blue-500/90 text-white border-blue-400/50 hover:border-blue-300/70 shadow-lg hover:shadow-xl hover:shadow-blue-500/25'
+                  : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
+              } w-full py-3 text-sm font-semibold border rounded-lg transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:transform-none relative overflow-hidden group`}
+              title={!isFormValid ? getValidationMessage() : "保存更改"}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {!isFormValid && <Icons.Error size={16} />}
+                {isFormValid && <Icons.Check size={16} />}
+                保存
+              </span>
+            </button>
+
+            {/* 次级操作按钮组 */}
+            <div className="flex gap-2">
+              {initialData && onDuplicate && (
+                <button
+                  onClick={onDuplicate}
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/20 hover:border-gray-600/40 rounded-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-1.5"
+                  title="复制提示词"
+                >
+                  <Icons.Copy size={14} />
+                  <span>复制</span>
+                </button>
+              )}
+              {/* 取消按钮 */}
+              <button
+                onClick={onCancel}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-300 hover:text-gray-100 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-gray-500/50 rounded-lg transition-all duration-200 transform active:scale-95"
+                title="取消编辑"
+              >
+                取消
+              </button>
+            </div>
+          </div>
         </div>
       </div>
         <div className="w-full animate-slide-up-fade">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
             {/* Left: PromptMetaPanel (moved left) */}
-            <div className="xl:col-span-2 space-y-6">
+            <div className="xl:col-span-1 space-y-6">
             {/* Core Information (基础信息) */}
-            <div className={cardClass}>
+            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.basic} ${SECTION_STYLES.container.padding} ${SECTION_STYLES.container.spacing}`}>
                   <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
-                <div className="lg:col-span-3 space-y-2">
+                <div className="lg:col-span-3 space-y-4">
                   <div className="flex items-center justify-between min-h-[56px]">
-                    <h3 className={`${headingClass} ${colors.text.label}`}>
+                    <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-2 mb-0`}>
+                      <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.gray}`}></div>
                       基础信息
                     </h3>
                     {/* 自动生成已迁移到侧栏元数据面板 */}
                   </div>
                   {/* Tags moved into left Basic Info (wrapped together with title/description/attributes) */}
-                  <div className={`${colors.bg.cardDark} ${colors.border.light} rounded-lg p-2`}>
+                  <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg p-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3">
                       {/* Tags first row */}
                       <div className="md:col-span-2">
@@ -442,64 +497,64 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
 
                       {/* Title and Description side-by-side */}
                       <div>
-                        <label className={labelClass}>标题</label>
+                        <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>标题</label>
                         <input
                           type="text"
                           value={formData.title}
                           onChange={e => onFormDataChange({ ...formData, title: e.target.value })}
                           onBlur={() => setTitleTouched(true)}
                           maxLength={200}
-                          className={innerInputClass}
+                          className={SECTION_STYLES.content.input}
                           placeholder={COMPONENT_CONFIG.placeholders.title}
                           autoFocus={!initialData}
                           aria-invalid={!titleValid && titleTouched}
                         />
                         <div className="flex items-center justify-between mt-1 min-h-[16px]">
                           {!titleValid && titleTouched && (
-                            <p className="text-xs text-red-400 flex items-center gap-1">
-                              <Icons.Error size={12} />
+                            <p className={`${SECTION_STYLES.content.fieldDescription} ${SECTION_STYLES.status.textVariants.error} flex items-center gap-1`}>
+                              <Icons.Error size={SECTION_STYLES.icons.status.size} />
                               标题为必填，最多 200 字
                             </p>
                           )}
                           {titleValid && titleTouched && (
-                            <p className="text-xs text-green-400 flex items-center gap-1">
-                              <Icons.Check size={12} />
+                            <p className={`${SECTION_STYLES.content.fieldDescription} ${SECTION_STYLES.status.textVariants.success} flex items-center gap-1`}>
+                              <Icons.Check size={SECTION_STYLES.icons.status.size} />
                               标题格式正确
                             </p>
                           )}
                         </div>
                       </div>
                       <div>
-                        <label className={labelClass}>描述</label>
+                        <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>描述</label>
                         <input
                           type="text"
                           value={formData.description}
                           onChange={e => onFormDataChange({ ...formData, description: e.target.value })}
-                          className={innerInputClass}
+                          className={SECTION_STYLES.content.input}
                           placeholder={COMPONENT_CONFIG.placeholders.description}
                         />
                       </div>
 
                       {/* Attributes moved from meta panel: render inline across one row on large screens */}
                       <div className="md:col-span-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-0">
                           <div className="w-full">
-                              <label className={labelClass}>类别</label>
+                              <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>类别</label>
                             <select
                               value={formData.category || ''}
                               onChange={e => onFormDataChange({ ...formData, category: e.target.value })}
-                              className={compactSelectClass}
+                              className={SECTION_STYLES.content.select}
                             >
                               {(allCategories || []).map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                           </div>
 
                           <div className="w-full">
-                            <label className={labelClass}>状态</label>
+                            <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>状态</label>
                             <select
                               value={formData.status || 'active'}
                               onChange={e => onFormDataChange({ ...formData, status: e.target.value as PromptStatus })}
-                              className={compactSelectClass}
+                              className={SECTION_STYLES.content.select}
                             >
                               <option value="active">Active</option>
                               <option value="draft">Draft</option>
@@ -508,8 +563,8 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                           </div>
 
                           <div className="w-full">
-                            <label className={labelClass}>输出类型</label>
-                            <select value={formData.outputType || ''} onChange={e => onFormDataChange({ ...formData, outputType: (e.target.value as OutputType) || undefined })} className={compactSelectClass}>
+                            <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>输出类型</label>
+                            <select value={formData.outputType || ''} onChange={e => onFormDataChange({ ...formData, outputType: (e.target.value as OutputType) || undefined })} className={SECTION_STYLES.content.select}>
                               {COMPONENT_CONFIG.outputTypeOptions.map(option => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                               ))}
@@ -517,8 +572,8 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                           </div>
 
                           <div className="w-full">
-                            <label className={labelClass}>应用场景</label>
-                            <select value={formData.applicationScene || ''} onChange={e => onFormDataChange({ ...formData, applicationScene: (e.target.value as ApplicationScene) || undefined })} className={compactSelectClass}>
+                            <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>应用场景</label>
+                            <select value={formData.applicationScene || ''} onChange={e => onFormDataChange({ ...formData, applicationScene: (e.target.value as ApplicationScene) || undefined })} className={SECTION_STYLES.content.select}>
                               {COMPONENT_CONFIG.applicationSceneOptions.map(option => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                               ))}
@@ -533,7 +588,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             </div>
 
             {/* Meta panel below 基础信息 */}
-          <PromptMetaPanel
+            <PromptMetaPanel
               formData={formData}
               onFormDataChange={onFormDataChange}
               getTokenCount={getTokenCount}
@@ -550,37 +605,46 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
           </div>
 
           {/* Right: Main editor (Prompt content, bilingual) */}
-          <div className="xl:col-span-1 space-y-6 lg:space-y-8">
+          <div className="xl:col-span-1 space-y-6">
             {/* Prompt Section Header - aligned with Basic Info */}
-            <div className={`${colors.bg.card} rounded-lg p-4`}>
+            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.prompt} ${SECTION_STYLES.container.padding}`}>
               <div className="flex items-center justify-between min-h-[56px]">
-                <h3 className={`${headingClass} ${colors.text.label}`}>
+                <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-2 mb-0`}>
+                  <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue}`}></div>
                   提示词
                 </h3>
               </div>
               {/* System Role - moved inside prompt section header, aligned with tags */}
-              <div className={`${colors.bg.cardDark} ${colors.border.light} rounded-lg p-2 transition-all ${showSystem ? '' : 'max-h-[56px] overflow-hidden'}`}>
+              <div className={`bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg p-3 sm:p-4 transition-all border-l-4 border-l-blue-400/50 ${showSystem ? '' : 'max-h-[56px] overflow-hidden'}`}>
                 <div className="flex justify-between items-center mb-2">
-                  <label className={`${subheadingClass} text-brand-300`}>
-                    <span className={statusIndicator.brand}></span>
+                  <label className={`${SECTION_STYLES.content.subsectionTitle} text-blue-300 flex items-center gap-2 mb-0`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue}`}></div>
                     系统角色
                   </label>
                   <div className="flex items-center gap-2">
-                    {createActionButton(
-                      () => setShowSystem(s => !s),
-                      showSystem ? '收起' : '展开',
-                      'ghost',
-                      false,
-                      showSystem ? 'Collapse' : 'Expand'
-                    )}
-                    {createLoadingButton(
-                      isOptimizingSystem,
-                      '优化中...',
-                      <><Icons.Sparkles size={12} /> 优化</>,
-                      'secondary',
-                      !formData.systemInstruction,
-                      "优化系统角色"
-                    )}
+                    <button
+                      onClick={() => setShowSystem(s => !s)}
+                      className={SECTION_STYLES.buttons.secondary}
+                      title={showSystem ? '收起' : '展开'}
+                    >
+                      {showSystem ? '收起' : '展开'}
+                    </button>
+                    <button
+                      onClick={() => onOptimizeSystem && onOptimizeSystem()}
+                      disabled={isOptimizingSystem || !formData.systemInstruction}
+                      className={`${SECTION_STYLES.buttons.secondary} ${
+                        isOptimizingSystem
+                          ? 'bg-[var(--color-brand-primary)]/30 text-[var(--color-text-primary)] border-[var(--color-brand-primary)]/40 animate-pulse'
+                          : 'bg-[var(--color-brand-primary)]/20 text-[var(--color-text-primary)] border-[var(--color-brand-primary)]/30 hover:bg-[var(--color-brand-primary)]/30'
+                      }`}
+                      title="优化系统角色"
+                    >
+                      {isOptimizingSystem ? (
+                        <>优化中...</>
+                      ) : (
+                        <><Icons.Sparkles size={SECTION_STYLES.icons.action.size} className="inline mr-1" /> 优化</>
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div style={{ display: showSystem ? undefined : 'none' }}>
@@ -597,44 +661,60 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Prompt content group (chinese/english prompts) */}
-            <div className="space-y-6">
-                {/* Chinese Prompt */}
-                <div className={`${colors.bg.card} rounded-lg p-6 space-y-4`}>
-                  <div className="flex justify-between items-center flex-wrap gap-2">
-                    <label className={`${subheadingClass} text-brand-300`}>
-                      <span className={statusIndicator.brand}></span>
-                      中文提示词
-                    </label>
+              {/* Chinese Prompt */}
+              <div className={`bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg p-3 sm:p-4 transition-all border-l-4 border-l-blue-400/50 mt-6`}>
+                <div className="flex justify-between items-center flex-wrap gap-2 mb-2">
+                  <label className={`${SECTION_STYLES.content.subsectionTitle} text-blue-300 flex items-center gap-2 mb-0`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue}`}></div>
+                    中文提示词
+                  </label>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {createActionButton(
-                        () => setIsEditingChinesePrompt(!isEditingChinesePrompt),
-                        <><Icons.Edit size={12} /> {isEditingChinesePrompt ? "完成" : "编辑"}</>,
-                        'secondary',
-                        false,
-                        isEditingChinesePrompt ? "完成编辑" : "编辑中文提示词"
-                      )}
-                      {createLoadingButton(
-                        isTranslating,
-                        '翻译中...',
-                        <><Icons.Edit size={12} /> 翻译</>,
-                        'success',
-                        !formData.content,
-                        "将中文提示词翻译为英文"
-                      )}
-                      {createLoadingButton(
-                        isOptimizingPrompt,
-                        '优化中...',
-                        <><Icons.Sparkles size={12} /> 优化</>,
-                        'primary',
-                        !formData.content,
-                        "优化提示词内容"
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => setIsEditingChinesePrompt(!isEditingChinesePrompt)}
+                          className="px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-gray-500/50 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
+                          title={isEditingChinesePrompt ? "完成编辑" : "编辑中文提示词"}
+                        >
+                          <Icons.Edit size={12} className="inline mr-1" />
+                          {isEditingChinesePrompt ? "完成" : "编辑"}
+                        </button>
+                        <button
+                          onClick={() => onTranslateToEnglish && onTranslateToEnglish()}
+                          disabled={isTranslating || !formData.content}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:transform-none ${
+                            isTranslating
+                              ? 'bg-green-500/30 text-green-200 border-green-400/40 animate-pulse'
+                              : 'bg-green-500/20 text-green-200 border-green-500/30 hover:bg-green-500/30'
+                          }`}
+                          title="将中文提示词翻译为英文"
+                        >
+                          {isTranslating ? (
+                            <>翻译中...</>
+                          ) : (
+                            <><Icons.Edit size={12} className="inline mr-1" /> 翻译</>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onOptimizePrompt && onOptimizePrompt()}
+                          disabled={isOptimizingPrompt || !formData.content}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:transform-none ${
+                            isOptimizingPrompt
+                              ? 'bg-blue-500/30 text-blue-200 border-blue-400/40 animate-pulse'
+                              : 'bg-gradient-to-r from-blue-500/80 to-blue-600/80 text-white border-blue-400/50 hover:border-blue-300/70 shadow-lg hover:shadow-xl hover:shadow-blue-500/25'
+                          }`}
+                          title="优化提示词内容"
+                        >
+                          {isOptimizingPrompt ? (
+                            <>优化中...</>
+                          ) : (
+                            <><Icons.Sparkles size={12} className="inline mr-1" /> 优化</>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="relative">
+                  <div className="relative bg-gray-950/40 border border-white/10 rounded-lg p-3">
                     {isEditingChinesePrompt ? (
                       <div
                         ref={(el) => {
@@ -696,57 +776,39 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                         </div>
                         {getLineCount(formData.content) > COMPONENT_CONFIG.editor.maxCollapsedLines && (
                           <div className="absolute bottom-2 right-2 z-10">
-                            {createActionButton(
-                              () => setChinesePromptExpanded(!chinesePromptExpanded),
-                              chinesePromptExpanded ? '收起' : `展开 (${getLineCount(formData.content)} 行)`,
-                              'ghost',
-                              false,
-                              chinesePromptExpanded ? '收起内容' : '展开完整内容'
-                            )}
+                            <button
+                              onClick={() => setChinesePromptExpanded(!chinesePromptExpanded)}
+                              className="px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-200 bg-gray-900/80 hover:bg-gray-800/90 border border-gray-700/30 hover:border-gray-600/50 rounded-md transition-all duration-200 transform hover:scale-105 active:scale-95 backdrop-blur-sm"
+                              title={chinesePromptExpanded ? '收起内容' : '展开完整内容'}
+                            >
+                              {chinesePromptExpanded ? '收起' : `展开 (${getLineCount(formData.content)} 行)`}
+                            </button>
                           </div>
                         )}
                       </>
                     )}
                   </div>
-                  <div className="flex justify-between items-center text-xs flex-wrap gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={colors.text.description}>
-                        提示：使用{' '}
-                        <span className="text-brand-400 font-mono bg-brand-500/15 px-1.5 py-0.5 rounded border border-brand-500/30">
-                          {'{变量名}'}
-                        </span>{' '}
-                        创建动态输入
-                      </span>
-                      {contentTooLong && (
-                        <span className="text-red-400 font-medium">
-                          ⚠️ Token 数量过多 ({contentTokenCount})
-                        </span>
-                      )}
-                    </div>
-                    <span className={`font-mono ${contentTooLong ? tokenCountClass.warning : tokenCountClass.normal}`}>
-                      ~{contentTokenCount} tokens
-                    </span>
-                  </div>
                 </div>
 
-                {/* English Prompt */}
-                <div className={`${colors.bg.card} rounded-lg p-6 space-y-4`} style={{ minWidth: '100%' }}>
-                  <div className="flex justify-between items-center flex-wrap gap-2">
-                    <label className={`${subheadingClass} text-green-300`}>
-                      <span className={statusIndicator.green}></span>
-                      英文提示词
-                      {formData.englishPrompt && <span className="text-[10px] text-green-400/70 font-normal normal-case ml-1">(自动翻译)</span>}
-                    </label>
+              {/* English Prompt */}
+              <div className={`bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg p-3 sm:p-4 transition-all border-l-4 border-l-green-400/50 mt-6`}>
+                <div className="flex justify-between items-center flex-wrap gap-2 mb-2">
+                  <label className={`${SECTION_STYLES.content.subsectionTitle} text-green-300 flex items-center gap-2 mb-0`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.green}`}></div>
+                    英文提示词
+                    {formData.englishPrompt && <span className="text-xs text-green-400/70 font-normal normal-case">(自动翻译)</span>}
+                  </label>
                     {formData.englishPrompt ? (
                       <button
                         onClick={() => navigator.clipboard.writeText(formData.englishPrompt || '')}
-                        className="text-xs text-gray-400 hover:text-green-400 transition-colors flex items-center gap-1"
+                        className={SECTION_STYLES.buttons.secondary}
                         title="复制英文提示词"
                       >
-                        <Icons.Copy size={14} />
+                        <Icons.Copy size={12} className="inline mr-1" />
+                        复制
                       </button>
                     ) : (
-                      <span className={`text-xs sm:text-sm ${colors.text.descriptionLight}`}>点击"翻译"生成</span>
+                      <span className={`${SECTION_STYLES.status.text} ${SECTION_STYLES.status.textVariants.muted}`}>点击"翻译"生成</span>
                     )}
                   </div>
                   {formData.englishPrompt ? (
@@ -768,13 +830,13 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       </div>
                       {getLineCount(formData.englishPrompt) > COMPONENT_CONFIG.editor.maxCollapsedLines && (
                         <div className="absolute bottom-2 right-2 z-10">
-                          {createActionButton(
-                            () => setEnglishPromptExpanded(!englishPromptExpanded),
-                            englishPromptExpanded ? '收起' : `展开 (${getLineCount(formData.englishPrompt)} 行)`,
-                            'ghost',
-                            false,
-                            englishPromptExpanded ? '收起内容' : '展开完整内容'
-                          )}
+                          <button
+                            onClick={() => setEnglishPromptExpanded(!englishPromptExpanded)}
+                            className="px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-200 bg-gray-900/80 hover:bg-gray-800/90 border border-gray-700/30 hover:border-gray-600/50 rounded-md transition-all duration-200 transform hover:scale-105 active:scale-95 backdrop-blur-sm"
+                            title={englishPromptExpanded ? '收起内容' : '展开完整内容'}
+                          >
+                            {englishPromptExpanded ? '收起' : `展开 (${getLineCount(formData.englishPrompt)} 行)`}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -784,39 +846,44 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                         <div className={iconContainerClass}>
                           <Icons.Edit size={18} className={`w-4 h-4 md:w-5 md:h-5 ${colors.text.description}`} />
                         </div>
-                        <p className={`text-xs ${colors.text.description}`}>点击"翻译"按钮生成英文提示词</p>
+                        <p className={`${SECTION_STYLES.content.fieldDescription} ${SECTION_STYLES.content.fieldDescriptionColor}`}>点击"翻译"按钮生成英文提示词</p>
                       </div>
                     </div>
                   )}
-                  {formData.englishPrompt && (
-                     <div className={`text-xs sm:text-sm ${colors.text.descriptionLight} flex items-center gap-1.5`}>
-                       <span className={colors.text.description}>自动翻译自中文提示词</span>
-                    </div>
-                  )}
+                </div>
 
-                  {/* 参照示例 - 移至英文提示词下面 */}
-                  <div className={`${colors.bg.card} rounded-lg p-6 space-y-4`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className={`${headingClass} ${colors.text.label} flex items-center gap-2`}>
-                      <Icons.List size={16} />
-                      参照示例
-                    </h3>
-                    {createActionButton(
-                      addExample,
-                      '添加示例',
-                      'primary',
-                      false,
-                      "添加新的输入输出示例"
-                    )}
+              {/* 参照示例 - 重新设计的布局 */}
+              <div className="mt-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple} shadow-purple-400/50 shadow-[0_0_8px]`}></div>
+                      <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-2 mb-0`}>
+                        <Icons.List size={SECTION_STYLES.icons.section.size} className="inline mr-2" />
+                        参照示例
+                      </h3>
+                    </div>
+                    {/* 添加示例按钮 */}
+                    <button
+                      onClick={addExample}
+                      className={`${SECTION_STYLES.buttons.primary} bg-gradient-to-r from-purple-500/80 to-purple-600/80 hover:from-purple-400/90 hover:to-purple-500/90 border-purple-400/50 hover:border-purple-300/70 shadow-lg hover:shadow-xl hover:shadow-purple-500/25 min-h-[40px] w-full sm:w-auto justify-center`}
+                      title="添加新的输入输出示例"
+                    >
+                      <Icons.Plus size={SECTION_STYLES.icons.action.size} />
+                      添加示例
+                    </button>
                   </div>
+                  {/* 示例内容区域 */}
                   <div className="space-y-4">
                     {(formData.examples || []).length === 0 ? (
-                      <div className="text-center py-8">
-                        <div className={iconContainerClass}>
-                          <Icons.List size={20} className={colors.text.description} />
+                      <div className="text-center py-12 px-4">
+                        <div className={`${SECTION_STYLES.container.base} w-16 h-16 mx-auto rounded-full flex items-center justify-center border border-[var(--color-border-accent)] mb-4`}>
+                          <Icons.List size={SECTION_STYLES.icons.section.size + 8} className={`${SECTION_STYLES.content.fieldLabelColor}`} />
                         </div>
-                        <p className={`text-sm ${colors.text.description}`}>暂无示例</p>
-                        <p className={`text-xs ${colors.text.descriptionDark} mt-1`}>点击上方"添加示例"按钮创建示例</p>
+                        <h4 className={`text-base font-medium ${SECTION_STYLES.content.fieldLabelColor} mb-2`}>暂无示例</h4>
+                        <p className={`${SECTION_STYLES.content.fieldDescription} text-[var(--color-text-muted)] leading-relaxed max-w-sm mx-auto`}>
+                          示例可以帮助AI更好地理解您的提示词意图。<br />
+                          点击上方"添加示例"按钮创建第一个示例。
+                        </p>
                       </div>
                     ) : (
                       (formData.examples || []).map((ex, idx) => (
@@ -867,8 +934,6 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       ))
                     )}
                   </div>
-                </div> {/* 参照示例结束 */}
-              </div> {/* 英文提示词结束 */}
             </div>
           </div>
 
@@ -877,6 +942,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
           {/* Right column now contains the prompt editor (moved from left) */}
         </div>
       </div>
+    </div>
 
       {/* Footer removed — controls moved to header */}
     </div>

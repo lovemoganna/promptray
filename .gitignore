@@ -44,3 +44,16 @@ thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# GitHub Pages
+.github/
+!.github/workflows/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# Build artifacts (keep dist for GitHub Pages deployment)
+# dist/  # Uncomment this line if you want to ignore dist locally

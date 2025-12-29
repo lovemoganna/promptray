@@ -1,6 +1,6 @@
 import React from 'react';
 import { PromptFormData } from '../../types';
-import { colors } from '../ui/styleTokens';
+import { colors, SECTION_STYLES } from '../ui/styleTokens';
 import { debugEnvironmentVariables } from '../../services/groqConfig';
 
 interface PromptMetaPanelProps {
@@ -74,17 +74,20 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
   // evaluation is stored under extracted (editable textarea). previous tag-based UI removed.
 
   return (
-    <aside className="space-y-4 pt-6 p-6">
-      <div className="flex items-center justify-between gap-4 min-h-[56px]">
-        <h3 className={`text-sm font-semibold ${colors.text.secondary} uppercase tracking-wider`}>元数据</h3>
-        <div className="flex items-center gap-2">
+    <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.meta} ${SECTION_STYLES.container.padding} ${SECTION_STYLES.container.spacing}`}>
+      <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 min-h-[56px]">
+        <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-2 mb-0`}>
+          <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple}`}></div>
+          元数据
+        </h3>
+        <div className="flex items-center gap-2 flex-1 min-w-0 w-full">
           {onAutoMetadata && (
             <>
               <select
                 value={autoTarget}
                 onChange={(e) => setAutoTarget(e.target.value)}
                 aria-label="选择要自动补全的字段（可选）"
-                className="text-xs bg-gray-950/70 border border-white/10 rounded-lg px-2 py-1 text-white"
+                className="w-auto min-w-0 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-md px-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-primary)]/50 focus:ring-1 focus:ring-[var(--color-brand-primary)]/30 transition-all appearance-none cursor-pointer"
               >
                 <option value="">选择字段</option>
                 <option value="all">全部</option>
@@ -99,6 +102,7 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
                 <option value="version">版本</option>
                 <option value="evaluation">评估</option>
               </select>
+              {/* 智能补全按钮 - 主要操作 */}
               <button
                 onClick={async () => {
                   if (!onAutoMetadata || !autoTarget) return;
@@ -138,13 +142,15 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
                   }
                 }}
                 disabled={isAutoMetaLoading || !autoTarget}
-                className="text-xs font-medium bg-white/10 text-gray-200 px-2.5 py-1 rounded-lg border border-white/15 hover:bg-white/15 transition-all disabled:opacity-50"
+                className={SECTION_STYLES.buttons.primary}
               >
                 {isAutoMetaLoading ? '补全中...' : '智能补全'}
               </button>
+
+              {/* 调试API按钮 - 次级操作 */}
               <button
                 onClick={() => debugEnvironmentVariables()}
-                className="text-xs font-medium bg-blue-500/20 text-blue-200 px-2.5 py-1 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition-all"
+                className={SECTION_STYLES.buttons.secondary}
                 title="调试环境变量"
               >
                 调试API
@@ -158,22 +164,29 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
       {/* Metadata form: three groups (语义定义 / 质量控制 / 工程与管理) */}
       <div className="grid grid-cols-1 gap-4">
         {/* 语义定义 */}
-        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-3 sm:p-4 border-l-4 border-l-blue-400/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-3">
             {/* 语义定义标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
-                    语义定义
-                  </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 shadow-blue-400/50 shadow-[0_0_8px]"></div>
+                    <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                      语义定义
+                    </h4>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-blue-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
 
             {/* Intent and Role side-by-side */}
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>意图</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                意图
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -204,7 +217,10 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
               </div>
             </div>
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>角色</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                角色
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -237,7 +253,10 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
 
             {/* Audience and Action side-by-side */}
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>受众</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                受众
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -268,7 +287,10 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
               </div>
             </div>
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>作用</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                作用
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -302,22 +324,29 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
         </div>
 
         {/* 质量控制 */}
-        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-3 sm:p-4 border-l-4 border-l-green-400/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-3">
             {/* 质量控制标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
-                    质量控制
-                  </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-400 shadow-green-400/50 shadow-[0_0_8px]"></div>
+                    <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                      质量控制
+                    </h4>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-green-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
 
             {/* 质量目标和边界/禁止项并排 */}
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>质量目标</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                质量目标
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -374,7 +403,10 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
               </div>
             </div>
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>边界 / 禁止项</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                边界 / 禁止项
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -434,22 +466,29 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
         </div>
 
         {/* 工程与管理 */}
-        <div className="bg-gray-950/70 border border-white/10 rounded-lg p-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-2">
+        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-3 sm:p-4 border-l-4 border-l-purple-400/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-3">
             {/* 工程与管理标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>
-                    工程与管理
-                  </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-400 shadow-purple-400/50 shadow-[0_0_8px]"></div>
+                    <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
+                      工程与管理
+                    </h4>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-purple-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
 
             {/* 版本更迭和裁定标准并排 */}
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>版本更迭</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                版本更迭
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -480,7 +519,10 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
               </div>
             </div>
             <div>
-              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider`}>裁定标准</label>
+              <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                裁定标准
+              </label>
               <div className="relative">
                 <div
                   contentEditable
@@ -541,7 +583,7 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
 
 
       </div>
-    </aside>
+    </div>
   );
 };
 
