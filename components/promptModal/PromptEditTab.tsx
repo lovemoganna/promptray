@@ -300,33 +300,34 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
   return (
     <div>
       {/* Edit controls: placed inside Edit tab (top-right) */}
-        {/* 优化按钮组 - 移动端友好，使用统一样式系统 */}
-        <div className="flex justify-end mb-6">
-          {/* 桌面端：水平排列，统一间距 */}
+        {/* 优化按钮组 - 移动端友好 */}
+        <div className="flex justify-end mb-4">
+          {/* 桌面端：优化布局，更好的视觉层次 */}
           <div className="hidden sm:flex items-center gap-3">
-            {/* 复制按钮 - 仅在有初始数据时显示 */}
-            {initialData && onDuplicate && (
+            {/* 主操作按钮组 - 统一的玻璃态设计 */}
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-md shadow-lg">
+              {initialData && onDuplicate && (
+                <button
+                  onClick={onDuplicate}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 transform hover:scale-105 active:scale-95"
+                  title="复制提示词"
+                >
+                  <Icons.Copy size={SECTION_STYLES.icons.action.size} />
+                  <span className="hidden lg:inline">复制</span>
+                </button>
+              )}
+              <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
               <button
-                onClick={onDuplicate}
-                className={`${SECTION_STYLES.buttons.secondary} px-3 py-2 text-sm`}
-                title="复制提示词"
+                onClick={onCancel}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-all duration-200 transform hover:scale-105 active:scale-95"
+                title="取消编辑"
               >
-                <Icons.Copy size={SECTION_STYLES.icons.action.size} />
-                <span>复制</span>
+                <Icons.Close size={SECTION_STYLES.icons.action.size} />
+                <span className="hidden lg:inline">取消</span>
               </button>
-            )}
+            </div>
 
-            {/* 取消按钮 - 次级操作 */}
-            <button
-              onClick={onCancel}
-              className={`${SECTION_STYLES.buttons.secondary} px-3 py-2 text-sm`}
-              title="取消编辑"
-            >
-              <Icons.X size={SECTION_STYLES.icons.action.size} />
-              <span>取消</span>
-            </button>
-
-            {/* 保存按钮 - 主要操作，突出显示 */}
+            {/* 保存按钮 - 主要操作，独立突出 */}
             <button
               onClick={() => {
                 if (!isFormValid) {
@@ -342,62 +343,64 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                 onSaveClick && onSaveClick();
               }}
               disabled={!isFormValid}
-              className={`${SECTION_STYLES.buttons.primary} ${
-                !isFormValid
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30 opacity-60'
-                  : ''
+              className={`px-6 py-2.5 text-sm font-semibold border rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex items-center gap-2 relative overflow-hidden group ${
+                isFormValid
+                  ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/80 to-[var(--color-brand-secondary)]/80 hover:from-[var(--color-brand-primary)]/90 hover:to-[var(--color-brand-secondary)]/90 text-white border-[var(--color-brand-primary)]/50 hover:border-[var(--color-brand-primary)]/70'
+                  : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25 disabled:opacity-50'
               }`}
               title={!isFormValid ? getValidationMessage() : "保存更改"}
             >
-              {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
-              {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
-              <span>保存</span>
+              <span className="relative z-10 flex items-center gap-2">
+                {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
+                {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
+                保存
+              </span>
             </button>
 
-            {/* 自动保存开关组件 - 更紧凑的设计 */}
-            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[var(--color-border-primary)]">
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-medium ${SECTION_STYLES.content.fieldLabelColor}`}>自动保存</span>
+            {/* 自动保存开关组件 - 优化布局和视觉一致性 */}
+            <div className="flex items-center bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-xl px-3 py-2 backdrop-blur-md shadow-lg">
+              <span className={`text-xs font-medium mr-3 ${SECTION_STYLES.content.fieldLabelColor}`}>自动保存</span>
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => onToggleAutoSave && onToggleAutoSave()}
                   disabled={isAutoSaving}
-                  className={`${SECTION_STYLES.buttons.toggle} ${
-                    isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleOn : SECTION_STYLES.buttons.toggleOff
-                  } ${isAutoSaving ? 'animate-pulse opacity-75' : ''}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/50 focus:ring-offset-1 focus:ring-offset-[var(--color-bg-primary)] disabled:opacity-50 ${
+                    isAutoSaveEnabled
+                      ? 'bg-[var(--color-brand-primary)] shadow-lg'
+                      : 'bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)]'
+                  } ${isAutoSaving ? 'animate-pulse' : ''}`}
                   title={isAutoSaveEnabled ? '关闭自动保存' : '开启自动保存'}
                 >
                   <span
-                    className={`${SECTION_STYLES.buttons.toggleThumb} ${
-                      isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleThumbOn : SECTION_STYLES.buttons.toggleThumbOff
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                      isAutoSaveEnabled ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                   {/* 加载状态指示器 */}
                   {isAutoSaving && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-2.5 h-2.5 border border-white/40 border-t-white rounded-full animate-spin"></div>
                     </div>
                   )}
                 </button>
-              </div>
-
-              {/* 状态指示器 - 更简洁 */}
-              <div className="flex items-center gap-1.5">
-                <div className={`${SECTION_STYLES.status.indicator} ${
-                  isAutoSaving ? SECTION_STYLES.status.variants.loading :
-                  isAutoSaveEnabled ? SECTION_STYLES.status.variants.success : SECTION_STYLES.status.variants.muted
-                }`}></div>
-                <span className={`${SECTION_STYLES.status.text} ${
-                  isAutoSaving ? SECTION_STYLES.status.textVariants.loading :
-                  isAutoSaveEnabled ? SECTION_STYLES.status.textVariants.success : SECTION_STYLES.status.textVariants.muted
-                }`}>
-                  {isAutoSaving ? '保存中' : (isAutoSaveEnabled ? '开启' : '关闭')}
-                </span>
+                {/* 状态指示器和文字 */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isAutoSaving ? 'bg-[var(--color-brand-primary)] animate-pulse' :
+                    isAutoSaveEnabled ? 'bg-green-400' : 'bg-gray-400'
+                  }`}></div>
+                  <span className={`text-xs font-medium transition-colors ${
+                    isAutoSaving ? 'text-[var(--color-brand-primary)]' :
+                    isAutoSaveEnabled ? 'text-green-300' : 'text-[var(--color-text-muted)]'
+                  }`}>
+                    {isAutoSaving ? '保存中' : (isAutoSaveEnabled ? '已开启' : '已关闭')}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 移动端：垂直排列，全宽按钮，使用统一样式 */}
-          <div className="flex flex-col gap-3 sm:hidden w-full max-w-xs mx-auto">
+          {/* 移动端：垂直排列，全宽按钮 */}
+          <div className="flex flex-col gap-2 sm:hidden w-full max-w-xs mx-auto">
             {/* 保存按钮 - 移动端置顶，主要操作 */}
             <button
               onClick={() => {
@@ -412,26 +415,38 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                   return;
                 }
                 onSaveClick && onSaveClick();
+                // 添加保存成功的视觉反馈
+                setTimeout(() => {
+                  const button = document.activeElement as HTMLButtonElement;
+                  if (button && button.textContent?.includes('保存')) {
+                    button.classList.add('animate-pulse', 'bg-green-500/20', 'border-green-500/40');
+                    setTimeout(() => {
+                      button.classList.remove('animate-pulse', 'bg-green-500/20', 'border-green-500/40');
+                    }, 1000);
+                  }
+                }, 100);
               }}
               disabled={!isFormValid}
-              className={`${SECTION_STYLES.buttons.primary} w-full py-3 text-sm justify-center ${
-                !isFormValid
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30'
-                  : ''
-              }`}
+              className={`${
+                isFormValid
+                  ? 'bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-400/90 hover:to-blue-500/90 text-white border-blue-400/50 hover:border-blue-300/70 shadow-lg hover:shadow-xl hover:shadow-blue-500/25'
+                  : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
+              } w-full py-3 text-sm font-semibold border rounded-lg transition-all duration-200 transform active:scale-95 disabled:opacity-50 disabled:transform-none relative overflow-hidden group`}
               title={!isFormValid ? getValidationMessage() : "保存更改"}
             >
-              {!isFormValid && <Icons.Error size={16} />}
-              {isFormValid && <Icons.Check size={16} />}
-              <span>保存</span>
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {!isFormValid && <Icons.Error size={16} />}
+                {isFormValid && <Icons.Check size={16} />}
+                保存
+              </span>
             </button>
 
-            {/* 次级操作按钮组 - 更统一的样式 */}
+            {/* 次级操作按钮组 */}
             <div className="flex gap-2">
               {initialData && onDuplicate && (
                 <button
                   onClick={onDuplicate}
-                  className={`${SECTION_STYLES.buttons.secondary} flex-1 py-2.5 text-sm justify-center`}
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/20 hover:border-gray-600/40 rounded-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-1.5"
                   title="复制提示词"
                 >
                   <Icons.Copy size={14} />
@@ -441,48 +456,11 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
               {/* 取消按钮 */}
               <button
                 onClick={onCancel}
-                className={`${SECTION_STYLES.buttons.secondary} flex-1 py-2.5 text-sm justify-center`}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-300 hover:text-gray-100 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-gray-500/50 rounded-lg transition-all duration-200 transform active:scale-95"
                 title="取消编辑"
               >
-                <Icons.X size={14} />
-                <span>取消</span>
+                取消
               </button>
-            </div>
-
-            {/* 移动端自动保存开关 */}
-            <div className="flex items-center justify-center gap-3 p-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg">
-              <span className={`text-sm font-medium ${SECTION_STYLES.content.fieldLabelColor}`}>自动保存</span>
-              <button
-                onClick={() => onToggleAutoSave && onToggleAutoSave()}
-                disabled={isAutoSaving}
-                className={`${SECTION_STYLES.buttons.toggle} ${
-                  isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleOn : SECTION_STYLES.buttons.toggleOff
-                } ${isAutoSaving ? 'animate-pulse opacity-75' : ''}`}
-                title={isAutoSaveEnabled ? '关闭自动保存' : '开启自动保存'}
-              >
-                <span
-                  className={`${SECTION_STYLES.buttons.toggleThumb} ${
-                    isAutoSaveEnabled ? SECTION_STYLES.buttons.toggleThumbOn : SECTION_STYLES.buttons.toggleThumbOff
-                  }`}
-                />
-                {isAutoSaving && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin"></div>
-                  </div>
-                )}
-              </button>
-              <div className="flex items-center gap-1.5">
-                <div className={`${SECTION_STYLES.status.indicator} ${
-                  isAutoSaving ? SECTION_STYLES.status.variants.loading :
-                  isAutoSaveEnabled ? SECTION_STYLES.status.variants.success : SECTION_STYLES.status.variants.muted
-                }`}></div>
-                <span className={`${SECTION_STYLES.status.text} ${
-                  isAutoSaving ? SECTION_STYLES.status.textVariants.loading :
-                  isAutoSaveEnabled ? SECTION_STYLES.status.textVariants.success : SECTION_STYLES.status.textVariants.muted
-                }`}>
-                  {isAutoSaving ? '保存中' : (isAutoSaveEnabled ? '开启' : '关闭')}
-                </span>
-              </div>
             </div>
           </div>
         </div>
