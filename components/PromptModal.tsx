@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Prompt, PromptFormData, PromptConfig, PromptVersion, SavedRun, Theme } from '../types';
+import { useApp } from '../contexts/AppContext';
 import { Icons } from './Icons';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CodeSnippetsModal } from './CodeSnippetsModal';
@@ -33,6 +34,7 @@ const PromptModalComponent: React.FC<PromptModalProps> = ({
   isOpen, onClose, onSave, initialData, onDuplicate, onNotify, allCategories, allAvailableTags,
   onNext, onPrev, hasNext, hasPrev, currentTheme
 }) => {
+  const { state } = useApp();
   const [formData, setFormData] = useState<PromptFormData>({
     title: '',
     description: '',
