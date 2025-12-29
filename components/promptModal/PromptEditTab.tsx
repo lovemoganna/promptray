@@ -326,7 +326,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                 <span className="hidden lg:inline">取消</span>
               </button>
               <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
-              {/* 保存按钮 - 移入玻璃态容器 */}
+              {/* 保存按钮 - 移入玻璃态容器，统一样式 */}
               <button
                 onClick={() => {
                   if (!isFormValid) {
@@ -342,14 +342,14 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                   onSaveClick && onSaveClick();
                 }}
                 disabled={!isFormValid}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 relative overflow-hidden group ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-1.5 relative overflow-hidden group ${
                   isFormValid
                     ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/80 to-[var(--color-brand-secondary)]/80 hover:from-[var(--color-brand-primary)]/90 hover:to-[var(--color-brand-secondary)]/90 text-white border border-[var(--color-brand-primary)]/50 hover:border-[var(--color-brand-primary)]/70'
                     : 'bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-50'
                 }`}
                 title={!isFormValid ? getValidationMessage() : "保存更改"}
               >
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="relative z-10 flex items-center gap-1.5">
                   {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
                   {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
                   保存
@@ -360,7 +360,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
               <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
               {/* 自动保存开关组件 - 移入玻璃态容器 */}
               <div className="flex items-center gap-2 px-2">
-                <span className={`text-xs font-medium ${SECTION_STYLES.content.fieldLabelColor}`}>自动保存</span>
+                <span className={`text-xs font-medium text-[var(--color-text-secondary)]`}>自动保存</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onToggleAutoSave && onToggleAutoSave()}
