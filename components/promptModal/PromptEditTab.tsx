@@ -325,37 +325,37 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                 <Icons.Close size={SECTION_STYLES.icons.action.size} />
                 <span className="hidden lg:inline">取消</span>
               </button>
-            </div>
-
-            {/* 保存按钮 - 主要操作，独立突出 */}
-            <button
-              onClick={() => {
-                if (!isFormValid) {
-                  setTitleTouched(true);
-                  // Scroll to first error field
-                  const titleInput = document.querySelector('input[type="text"][placeholder*="标题"]') as HTMLInputElement;
-                  if (titleInput && !titleValid) {
-                    titleInput.focus();
-                    titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
+              {/* 保存按钮 - 移入玻璃态容器 */}
+              <button
+                onClick={() => {
+                  if (!isFormValid) {
+                    setTitleTouched(true);
+                    // Scroll to first error field
+                    const titleInput = document.querySelector('input[type="text"][placeholder*="标题"]') as HTMLInputElement;
+                    if (titleInput && !titleValid) {
+                      titleInput.focus();
+                      titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
                   }
-                  return;
-                }
-                onSaveClick && onSaveClick();
-              }}
-              disabled={!isFormValid}
-              className={`px-6 py-2.5 text-sm font-semibold border rounded-xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex items-center gap-2 relative overflow-hidden group ${
-                isFormValid
-                  ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/80 to-[var(--color-brand-secondary)]/80 hover:from-[var(--color-brand-primary)]/90 hover:to-[var(--color-brand-secondary)]/90 text-white border-[var(--color-brand-primary)]/50 hover:border-[var(--color-brand-primary)]/70'
-                  : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25 disabled:opacity-50'
-              }`}
-              title={!isFormValid ? getValidationMessage() : "保存更改"}
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
-                {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
-                保存
-              </span>
-            </button>
+                  onSaveClick && onSaveClick();
+                }}
+                disabled={!isFormValid}
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 relative overflow-hidden group ${
+                  isFormValid
+                    ? 'bg-gradient-to-r from-[var(--color-brand-primary)]/80 to-[var(--color-brand-secondary)]/80 hover:from-[var(--color-brand-primary)]/90 hover:to-[var(--color-brand-secondary)]/90 text-white border border-[var(--color-brand-primary)]/50 hover:border-[var(--color-brand-primary)]/70'
+                    : 'bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-50'
+                }`}
+                title={!isFormValid ? getValidationMessage() : "保存更改"}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {!isFormValid && <Icons.Error size={SECTION_STYLES.icons.status.size} />}
+                  {isFormValid && <Icons.Check size={SECTION_STYLES.icons.status.size} />}
+                  保存
+                </span>
+              </button>
+            </div>
 
             {/* 自动保存开关组件 - 优化布局和视觉一致性 */}
             <div className="flex items-center bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-xl px-3 py-2 backdrop-blur-md shadow-lg">
