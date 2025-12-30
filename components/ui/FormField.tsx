@@ -2,7 +2,6 @@ import { forwardRef } from 'react';
 import { Input, InputProps } from './Input';
 import { Textarea, TextareaProps } from './Input';
 import { Text } from './Text';
-import { THEME_COLORS } from './styleTokens';
 
 // =============================================================================
 // 表单字段组件 - FormField v1.0
@@ -179,12 +178,18 @@ export interface SelectFieldProps extends FormFieldProps {
   placeholder?: string;
   /** 选择器自定义样式 */
   selectClassName?: string;
+  /** 成功提示 */
+  success?: string;
+  /** 帮助文本 */
+  helpText?: string;
 }
 
 export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(({
   label,
   description,
   error,
+  success,
+  helpText,
   required,
   disabled,
   className = '',
@@ -196,7 +201,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(({
   'data-testid': testId,
   ...props
 }, ref) => {
-  const selectClasses = `w-full bg-[${THEME_COLORS.bg.secondary}] border border-[${THEME_COLORS.border.primary}] rounded-lg px-3 py-2 text-sm text-[${THEME_COLORS.text.primary}] focus:outline-none focus:border-[${THEME_COLORS.border.focus}] focus:ring-2 focus:ring-[${THEME_COLORS.brand.primary}]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${selectClassName}`;
+  const selectClasses = `w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 appearance-none cursor-pointer ${selectClassName}`;
 
   return (
     <div className={`space-y-2 ${className}`} data-testid={testId}>
@@ -249,9 +254,25 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(({
 
       {/* 错误信息 */}
       {error && (
-        <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+        <div className="text-xs text-red-400 mt-1 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* 成功提示 */}
+      {success && !error && (
+        <div className="text-xs text-green-400 mt-1 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+          {success}
+        </div>
+      )}
+
+      {/* 帮助文本 */}
+      {helpText && !error && !success && (
+        <div className="text-xs text-[var(--color-text-muted)] mt-1 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-muted)] flex-shrink-0" />
+          {helpText}
         </div>
       )}
     </div>

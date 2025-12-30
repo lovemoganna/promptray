@@ -29,7 +29,7 @@ export interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 't
 // 头部样式变体
 const headerVariants = {
   gradient: 'bg-gradient-to-r from-purple-700 via-purple-600 to-purple-500',
-  solid: `bg-[${THEME_COLORS.bg.secondary}] border-b border-[${THEME_COLORS.border.primary}]`,
+  solid: `bg-[${THEME_COLORS.bg.primary}] border-b border-[${THEME_COLORS.border.primary}]`,
   transparent: 'bg-transparent',
   accent: `bg-[${THEME_COLORS.brand.primary}] text-white`
 };

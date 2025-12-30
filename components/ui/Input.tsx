@@ -122,7 +122,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
       {/* 错误信息 */}
       {error && (
         <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
           {error}
         </div>
       )}
@@ -130,7 +130,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
       {/* 成功提示 */}
       {success && !error && (
         <div className="text-xs text-green-400 mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-green-400 flex-shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
           {success}
         </div>
       )}
@@ -228,7 +228,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
       {/* 错误信息 */}
       {error && (
         <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
           {error}
         </div>
       )}
@@ -236,7 +236,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
       {/* 成功提示 */}
       {success && !error && (
         <div className="text-xs text-green-400 mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 rounded-full bg-green-400 flex-shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
           {success}
         </div>
       )}
