@@ -4,7 +4,6 @@ import { PromptModal } from './components/PromptModal';
 import { Toast } from './components/Toast';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Icons } from './components/Icons';
-import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Dashboard } from './components/Dashboard';
 import { ListView } from './components/ListView';
 import { KnowledgeTable } from './components/KnowledgeTable';
@@ -27,6 +26,7 @@ import { useThemeManager } from './hooks/useThemeManager';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { initializeStorageMigration } from './services/storageService';
 import { dataSyncManager } from './hooks/useDuckDBSync';
+import { useApp } from './contexts/AppContext';
 
 // Refined Themes - Professional & Aesthetic
 const THEMES: Theme[] = [
@@ -114,6 +114,8 @@ const AmbientBackground = ({ themeId }: { themeId: string }) => {
 };
 
 const App: React.FC = () => {
+  const { state, actions } = useApp();
+
   const {
     prompts,
     setPrompts,
@@ -216,6 +218,9 @@ const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-oss-120b');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
+  // Use AppContext for sidebar state management
+  const { isDesktopSidebarOpen } = state;
+
   // keep filter state in sync with hook's internal state via localStorage (useFilterState persists)
 
   // Fetch available models when provider changes
@@ -253,7 +258,6 @@ const App: React.FC = () => {
   const { currentThemeId, setCurrentThemeId, currentThemeObj } = useThemeManager(THEMES);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true); // Desktop sidebar state
 
   // Use the original paginated grid prompts - no artificial limit in fullscreen mode
   const pagedGridPrompts = originalPagedGridPrompts;
@@ -701,7 +705,7 @@ const App: React.FC = () => {
         isMobileOpen={isSidebarOpen}
         onCloseMobile={useCallback(() => setIsSidebarOpen(false), [])}
         isDesktopOpen={isDesktopSidebarOpen}
-        onToggleDesktop={useCallback(() => setIsDesktopSidebarOpen(prev => !prev), [])}
+        onToggleDesktop={useCallback(() => actions.toggleDesktopSidebar(), [])}
         selectedProvider={selectedProvider}
         onModelSelectorOpen={useCallback(() => {
           // Store the currently focused element for restoration
@@ -1009,11 +1013,9 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* Grid View - Optimized for fullscreen space utilization */}
+                {/* Grid View - Consistent 4-column layout across all sidebar states */}
                 <div className="grid gap-4 justify-center pb-12" style={{
-                    gridTemplateColumns: isDesktopSidebarOpen
-                      ? 'repeat(auto-fit, minmax(280px, 1fr))'
-                      : 'repeat(auto-fit, minmax(240px, 1fr))'
+                    gridTemplateColumns: 'repeat(4, minmax(260px, 1fr))'
                   }}>
                     {filteredPrompts.length === 0 ? (
                         <div className={emptyStateClass}>
@@ -1067,23 +1069,21 @@ const App: React.FC = () => {
         )}
         </div>
 
-        <ErrorBoundary>
-            <PromptModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={editingPrompt ? handleUpdatePrompt : handleCreatePrompt}
-                onDuplicate={handleDuplicatePrompt}
-                onNotify={showToast}
-                initialData={editingPrompt}
-                allCategories={[...STANDARD_CATEGORIES, ...customCategories]}
-                allAvailableTags={allTags}
-                onNext={() => navigatePrompt('next')}
-                onPrev={() => navigatePrompt('prev')}
-                hasNext={!!nextPrompt}
-                hasPrev={!!prevPrompt}
-                currentTheme={currentThemeObj}
-            />
-        </ErrorBoundary>
+        <PromptModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={editingPrompt ? handleUpdatePrompt : handleCreatePrompt}
+            onDuplicate={handleDuplicatePrompt}
+            onNotify={showToast}
+            initialData={editingPrompt}
+            allCategories={[...STANDARD_CATEGORIES, ...customCategories]}
+            allAvailableTags={allTags}
+            onNext={() => navigatePrompt('next')}
+            onPrev={() => navigatePrompt('prev')}
+            hasNext={!!nextPrompt}
+            hasPrev={!!prevPrompt}
+            currentTheme={currentThemeObj}
+        />
         
         <CommandPalette 
             isOpen={isPaletteOpen}
@@ -1237,6 +1237,7 @@ const App: React.FC = () => {
                                             provider: selectedProvider,
                                             model: selectedModel
                                         }}
+                                        autoSave={true}
                                     />
                                 </div>
                             </div>

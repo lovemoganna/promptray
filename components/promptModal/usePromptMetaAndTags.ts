@@ -42,6 +42,10 @@ export const usePromptMetaAndTags = ({
     // If caller specifically requests only role, run a focused generation and return result
     const provider = options?.provider || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_provider') || 'auto') : 'auto');
     const model = options?.model || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_name') || '') : '');
+
+    // Debug logging to help diagnose provider issues
+    console.log('Auto metadata provider:', provider, 'model:', model);
+
     if (options && options.target === 'role') {
       try {
         let role: string | undefined;
@@ -77,8 +81,27 @@ export const usePromptMetaAndTags = ({
       try {
         let parsed: any;
         if (provider === 'groq') {
+          // User explicitly selected Groq
           parsed = await groqService.generatePromptMetadataGroq(formData.title, formData.description, formData.content);
+        } else if (provider === 'auto') {
+          // Auto mode: try Groq first (faster and cheaper), then Gemini
+          try {
+            if (groqService.isApiKeyAvailable()) {
+              parsed = await groqService.generatePromptMetadataGroq(formData.title, formData.description, formData.content);
+            } else {
+              throw new Error('Groq API key not available');
+            }
+          } catch (groqError) {
+            console.log('Groq not available or failed, falling back to Gemini:', groqError);
+            parsed = await generatePromptMetadata(
+              formData.title,
+              formData.description,
+              formData.content,
+              model || undefined
+            );
+          }
         } else {
+          // Explicitly selected Gemini or other provider
           parsed = await generatePromptMetadata(
             formData.title,
             formData.description,
@@ -93,7 +116,7 @@ export const usePromptMetaAndTags = ({
         let evaluationFromModel: string | undefined = undefined;
         try {
           if (!(parsed as any).role) {
-            if (provider === 'groq') {
+            if (provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable())) {
               roleFromModel = await groqService.generateRoleIdentityGroq(formData.title, formData.description, formData.content);
             } else {
               roleFromModel = await generateRoleIdentity(formData.title, formData.description, formData.content);
@@ -106,7 +129,7 @@ export const usePromptMetaAndTags = ({
         }
         try {
           if (!(parsed as any).evaluation) {
-            if (provider === 'groq') {
+            if (provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable())) {
               evaluationFromModel = await groqService.generateEvaluationGroq(formData.title, formData.description, formData.content);
             } else {
               evaluationFromModel = await generateEvaluation(formData.title, formData.description, formData.content);

@@ -17,6 +17,7 @@ interface ModelSelectorProps {
   };
   selectedProvider?: string;
   selectedModel?: string;
+  autoSave?: boolean; // Whether to save to localStorage immediately when model is selected
 }
 
 interface ModelOption {
@@ -181,7 +182,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   onChange,
   className = '',
   selectedProvider,
-  selectedModel
+  selectedModel,
+  autoSave = false
 }) => {
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -293,10 +295,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   // Removed auto-expansion logic to maintain collapsed state
 
   const handleSelect = (option: ModelOption) => {
-    onChange({
+    const newValue = {
       provider: option.provider,
       model: option.model === 'auto' ? '' : option.model
-    });
+    };
+
+    onChange(newValue);
+
+    // Auto-save to localStorage if enabled
+    if (autoSave) {
+      try {
+        localStorage.setItem('prompt_model_provider', newValue.provider);
+        localStorage.setItem('prompt_model_name', newValue.model || '');
+        // Dispatch sync event
+        window.dispatchEvent(new CustomEvent('prompt_model_change', {
+          detail: { provider: newValue.provider, modelName: newValue.model }
+        }));
+      } catch (error) {
+        console.warn('Failed to auto-save model selection:', error);
+      }
+    }
   };
 
   const togglePlatformExpansion = (platformKey: string) => {
