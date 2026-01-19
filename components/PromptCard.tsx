@@ -214,9 +214,9 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
       className={`group relative flex w-full max-w-none flex-col h-full ${FOUNDATION.borderRadius.xl} ${AFFORDANCE_STYLES.interaction.clickable.base} ${AFFORDANCE_STYLES.interaction.clickable.hover} ${AFFORDANCE_STYLES.interaction.clickable.active} overflow-hidden ${tone.card} ${tone.hover} ${isSelected ? selectedShadow : ''} ${isLoading ? 'pointer-events-none opacity-70' : ''} ${LAYOUT.elevation.medium}`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
-      <div className={`relative z-10 flex h-full flex-col ${FOUNDATION.spacing['3xl']} ${LAYOUT.spacing.component}`}>
+      <div className={`relative z-10 flex h-full flex-col ${FOUNDATION.spacing['2xl']} ${LAYOUT.spacing.component}`}>
         {/* Header Section - 统一间距 */}
-        <div className={`flex items-start justify-between ${FOUNDATION.spacing['3xl']}`}>
+        <div className={`flex items-start justify-between ${FOUNDATION.spacing['2xl']}`}>
           <div className={`flex-1 min-w-0 flex flex-col ${FOUNDATION.spacing['xl']}`}>
             {/* Status Badges Row */}
             <div className={`flex flex-nowrap items-center ${FOUNDATION.spacing['xl']}`}>
@@ -330,20 +330,20 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
         </div>
 
         {/* Preview Section */}
-        <div className={`${FOUNDATION.borderRadius.lg} border ${tone.preview} bg-[var(--color-bg-secondary)]`}>
-          <div className={`flex items-center justify-between ${FOUNDATION.spacing['3xl']} ${FOUNDATION.spacing['xl']}`}>
+        <div className={`${FOUNDATION.borderRadius.lg} border ${tone.preview} bg-[var(--color-bg-secondary)] mt-2`}>
+          <div className={`flex items-center justify-between ${FOUNDATION.spacing['xl']} ${FOUNDATION.spacing['lg']}`}>
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
               <Icons.Sparkles size={12} />
               <span>Preview</span>
             </div>
           </div>
-          <div className={`${FOUNDATION.spacing['3xl']} pb-3 h-[80px] overflow-hidden`}>
+          <div className={`${FOUNDATION.spacing['xl']} pb-4 h-[85px] overflow-hidden`}>
             <PromptContentPreview content={previewSnippet} variant={themeVariant} />
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className={`flex flex-nowrap items-center ${FOUNDATION.spacing['3xl']} text-[11px] text-slate-400/90`}>
+        <div className={`flex flex-nowrap items-center ${FOUNDATION.spacing['xl']} text-[11px] text-slate-400/90 mt-3`}>
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <Icons.Activity size={11} className="text-slate-500" /> ~{tokens} tks
           </span>
@@ -356,7 +356,7 @@ const PromptCardComponent: React.FC<PromptCardProps> = ({
         </div>
 
         {/* Tags Section */}
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5 mt-2">
           {prompt.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
