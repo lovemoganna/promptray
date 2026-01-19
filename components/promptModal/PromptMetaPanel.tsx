@@ -28,6 +28,35 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
 
   // 展开/折叠状态管理
   const [expandedFields, setExpandedFields] = React.useState<Record<string, boolean>>({});
+
+  // Refs for contenteditable elements
+  const roleRef = React.useRef<HTMLDivElement>(null);
+  const evaluationRef = React.useRef<HTMLDivElement>(null);
+
+  // Sync contenteditable content with formData changes
+  React.useEffect(() => {
+    if (roleRef.current) {
+      const currentValue = roleRef.current.textContent || '';
+      const newValue = (formData.extracted as any)?.role || '';
+      // Only update if the value is actually different and user is not actively editing
+      if (currentValue !== newValue && roleRef.current !== document.activeElement) {
+        roleRef.current.textContent = newValue;
+        console.log('Updated role field:', newValue); // Debug log
+      }
+    }
+  }, [formData.extracted?.role]);
+
+  React.useEffect(() => {
+    if (evaluationRef.current) {
+      const currentValue = evaluationRef.current.textContent || '';
+      const newValue = (formData.extracted as any)?.evaluation || '';
+      // Only update if the value is actually different and user is not actively editing
+      if (currentValue !== newValue && evaluationRef.current !== document.activeElement) {
+        evaluationRef.current.textContent = newValue;
+        console.log('Updated evaluation field:', newValue); // Debug log
+      }
+    }
+  }, [formData.extracted?.evaluation]);
   // 移除本地状态，使用全局 ModelSelector
 
   const updateField = (key: keyof typeof formData, value: any) => {
@@ -77,7 +106,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
     <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.meta} p-5 space-y-4`}>
       <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4 min-h-[56px]">
         <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-2 mb-0`}>
-          <div className={`w-2 h-2 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple}`}></div>
           元数据
         </h3>
         {/* 主操作按钮组 - 统一的玻璃态设计 */}
@@ -121,17 +149,44 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
                     if (!res) return;
 
                     // handle several return shapes conservatively; prefer explicit mapping for specific targets
+                    console.log('AI response:', res, 'target:', autoTarget); // Debug log
                     if (typeof res === 'string') {
+                      console.log(`AI returned string for target ${autoTarget}:`, res); // Debug log
                       if (autoTarget === 'intent') updateExtracted({ intent: res });
-                      else if (autoTarget === 'role') updateExtracted({ role: res } as any);
-                      else if (autoTarget === 'audience') updateExtracted({ audience: res } as any);
+                      else if (autoTarget === 'role') {
+                        updateExtracted({ role: res });
+                        console.log('Setting role:', res); // Debug log
+                      }
+                      else if (autoTarget === 'audience') updateExtracted({ audience: res });
                       else if (autoTarget === 'action') updateField('usageNotes', res);
                       else if (autoTarget === 'quality') updateField('cautions', res);
+                      else if (autoTarget === 'constraints') {
+                        // 边界/禁止项 - 按行分割
+                        const lines = res.split('\n').map(l => l.trim()).filter(Boolean);
+                        updateExtracted({ constraints: lines });
+                      }
+                      else if (autoTarget === 'examples') {
+                        // 示例 - 尝试解析为数组格式
+                        try {
+                          const examples = JSON.parse(res);
+                          if (Array.isArray(examples)) {
+                            onFormDataChange({ ...formData, examples });
+                          }
+                        } catch {
+                          // 如果不是JSON格式，忽略
+                        }
+                      }
                       else if (autoTarget === 'format') updateField('outputType', res as any);
                       else if (autoTarget === 'version') updateField('description', res);
-                      else if (autoTarget === 'evaluation') updateExtracted({ ...(formData.extracted || {}), evaluation: res } as any);
+                      else if (autoTarget === 'evaluation') {
+                        updateExtracted({ evaluation: res });
+                        console.log('Setting evaluation:', res); // Debug log
+                      }
                     } else if (res.extracted) {
+                      console.log('AI returned extracted object:', res.extracted); // Debug log
                       updateExtracted(res.extracted);
+                      if (res.extracted.role) console.log('Setting role from extracted:', res.extracted.role);
+                      if (res.extracted.evaluation) console.log('Setting evaluation from extracted:', res.extracted.evaluation);
                     } else if (res.examples && Array.isArray(res.examples)) {
                       // Update examples using current formData
                       onFormDataChange({ ...formData, examples: res.examples } as any);
@@ -168,19 +223,17 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
       {/* Metadata form: three groups (语义定义 / 质量控制 / 工程与管理) */}
       <div className="grid grid-cols-1 gap-3">
         {/* 语义定义 */}
-        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-2.5 sm:p-3 border-l-4 border-l-blue-400/50">
+        <div className="bg-gray-950/60 p-2.5 sm:p-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* 语义定义标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-400 shadow-blue-400/50 shadow-[0_0_8px]"></div>
                     <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
                       语义定义
                     </h4>
                   </div>
-                  <div className="flex-1 h-px bg-gradient-to-r from-blue-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
@@ -188,7 +241,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             {/* Intent and Role side-by-side */}
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                 意图
               </label>
               <div className="relative">
@@ -222,17 +274,17 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             </div>
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                 角色
               </label>
               <div className="relative">
                 <div
+                  ref={roleRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => {
                     const target = e.target as HTMLDivElement;
                     const newContent = target.textContent || '';
-                    updateField('extracted', { ...(formData.extracted || {}), role: newContent });
+                    updateExtracted({ role: newContent });
                   }}
                   onFocus={(e) => {
                     if (!(formData.extracted as any)?.role) {
@@ -258,7 +310,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             {/* Audience and Action side-by-side */}
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                 受众
               </label>
               <div className="relative">
@@ -292,7 +343,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             </div>
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                 作用
               </label>
               <div className="relative">
@@ -328,19 +378,17 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
         </div>
 
         {/* 质量控制 */}
-        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-2.5 sm:p-3 border-l-4 border-l-green-400/50">
+        <div className="bg-gray-950/60 p-2.5 sm:p-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* 质量控制标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-400 shadow-green-400/50 shadow-[0_0_8px]"></div>
                     <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
                       质量控制
                     </h4>
                   </div>
-                  <div className="flex-1 h-px bg-gradient-to-r from-green-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
@@ -348,7 +396,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             {/* 质量目标和边界/禁止项并排 */}
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                 质量目标
               </label>
               <div className="relative">
@@ -407,7 +454,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             </div>
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                 边界 / 禁止项
               </label>
               <div className="relative">
@@ -468,19 +514,17 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
         </div>
 
         {/* 工程与管理 */}
-        <div className="bg-gray-950/60 border border-white/10 rounded-lg p-3 sm:p-4 border-l-4 border-l-purple-400/50">
+        <div className="bg-gray-950/60 p-3 sm:p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* 工程与管理标题占据整行 */}
             <div className="md:col-span-2">
               <div className="p-0 bg-transparent transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-400 shadow-purple-400/50 shadow-[0_0_8px]"></div>
                     <h4 className={`text-sm font-semibold ${colors.text.muted} uppercase tracking-wider`}>
                       工程与管理
                     </h4>
                   </div>
-                  <div className="flex-1 h-px bg-gradient-to-r from-purple-400/30 to-transparent"></div>
                 </div>
               </div>
             </div>
@@ -488,7 +532,6 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             {/* 版本更迭和裁定标准并排 */}
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
                 版本更迭
               </label>
               <div className="relative">
@@ -522,17 +565,17 @@ export const PromptMetaPanel: React.FC<PromptMetaPanelProps> = (props) => {
             </div>
             <div>
               <label className={`text-xs font-semibold ${colors.text.muted} uppercase tracking-wider flex items-center gap-1 mb-2`}>
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
                 裁定标准
               </label>
               <div className="relative">
                 <div
+                  ref={evaluationRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => {
                     const target = e.target as HTMLDivElement;
                     const newContent = target.textContent || '';
-                    updateExtracted({ ...(formData.extracted || {}), evaluation: newContent });
+                    updateExtracted({ evaluation: newContent });
                   }}
                   onFocus={(e) => {
                     if (!(formData.extracted as any)?.evaluation) {

@@ -39,12 +39,20 @@ export const usePromptMetaAndTags = ({
 }: UsePromptMetaAndTagsParams) => {
   const handleAutoMetadata = useCallback(async (options?: any) => {
     // debug instrumentation removed
-    // If caller specifically requests only role, run a focused generation and return result
+    // If caller specifically requests only role or evaluation, run a focused generation and return result
     const provider = options?.provider || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_provider') || 'auto') : 'auto');
     const model = options?.model || (typeof window !== 'undefined' ? (localStorage.getItem('prompt_model_name') || '') : '');
 
     // Debug logging to help diagnose provider issues
     console.log('Auto metadata provider:', provider, 'model:', model);
+
+    // Check if there's content to work with for specific targets
+    if (options && (options.target === 'role' || options.target === 'evaluation')) {
+      if (!formData.content && !formData.title && !formData.description) {
+        onNotify?.('请先完善提示词内容或标题，再自动生成元信息。', 'info');
+        return;
+      }
+    }
 
     if (options && options.target === 'role') {
       try {
@@ -58,6 +66,23 @@ export const usePromptMetaAndTags = ({
         return role;
       } catch (err) {
         console.error('generateRoleIdentity error:', err);
+        onNotify?.('智能补全失败，请稍后重试。', 'error');
+        return;
+      }
+    }
+
+    if (options && options.target === 'evaluation') {
+      try {
+        let evaluation: string | undefined;
+        if (provider === 'groq') {
+          evaluation = await groqService.generateEvaluationGroq(formData.title, formData.description, formData.content);
+        } else {
+          evaluation = await generateEvaluation(formData.title, formData.description, formData.content);
+        }
+        setFormData(prev => ({ ...prev, extracted: { ...(prev.extracted || {}), evaluation } }));
+        return evaluation;
+      } catch (err) {
+        console.error('generateEvaluation error:', err);
         onNotify?.('智能补全失败，请稍后重试。', 'error');
         return;
       }
@@ -114,28 +139,35 @@ export const usePromptMetaAndTags = ({
         // attempt to fill role and evaluation if model didn't return them
         let roleFromModel: string | undefined = undefined;
         let evaluationFromModel: string | undefined = undefined;
+        console.log('Parsed data has role:', !!(parsed as any).role, 'evaluation:', !!(parsed as any).evaluation); // Debug log
         try {
           if (!(parsed as any).role) {
+            console.log('Generating role using', provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable()) ? 'Groq' : 'Gemini'); // Debug log
             if (provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable())) {
               roleFromModel = await groqService.generateRoleIdentityGroq(formData.title, formData.description, formData.content);
             } else {
               roleFromModel = await generateRoleIdentity(formData.title, formData.description, formData.content);
             }
+            console.log('Generated role:', roleFromModel); // Debug log
           } else {
             roleFromModel = (parsed as any).role;
+            console.log('Using role from parsed data:', roleFromModel); // Debug log
           }
         } catch (e) {
           console.warn('generateRoleIdentity failed:', e);
         }
         try {
           if (!(parsed as any).evaluation) {
+            console.log('Generating evaluation using', provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable()) ? 'Groq' : 'Gemini'); // Debug log
             if (provider === 'groq' || (provider === 'auto' && groqService.isApiKeyAvailable())) {
               evaluationFromModel = await groqService.generateEvaluationGroq(formData.title, formData.description, formData.content);
             } else {
               evaluationFromModel = await generateEvaluation(formData.title, formData.description, formData.content);
             }
+            console.log('Generated evaluation:', evaluationFromModel); // Debug log
           } else {
             evaluationFromModel = (parsed as any).evaluation;
+            console.log('Using evaluation from parsed data:', evaluationFromModel); // Debug log
           }
         } catch (e) {
           console.warn('generateEvaluation failed:', e);
@@ -160,8 +192,8 @@ export const usePromptMetaAndTags = ({
             intent: (parsed as any).intent || (prev.extracted && prev.extracted.intent) || undefined,
             audience: (parsed as any).audience || (prev.extracted && prev.extracted.audience) || undefined,
             constraints: (parsed as any).constraints || (prev.extracted && prev.extracted.constraints) || undefined,
-            evaluation: evaluationFromModel || (prev.extracted && (prev.extracted as any).evaluation) || undefined,
-            role: roleFromModel || (prev.extracted && (prev.extracted as any).role) || undefined,
+            evaluation: evaluationFromModel !== undefined ? evaluationFromModel : (prev.extracted && (prev.extracted as any).evaluation) || undefined,
+            role: roleFromModel !== undefined ? roleFromModel : (prev.extracted && (prev.extracted as any).role) || undefined,
           },
           // Include examples if model returned them
           examples: (parsed as any).examples && Array.isArray((parsed as any).examples) ? (parsed as any).examples : prev.examples,

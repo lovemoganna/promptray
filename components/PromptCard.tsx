@@ -55,6 +55,18 @@ const buildCopyText = (prompt: Prompt): string => {
 
   lines.push(`标题: ${prompt.title}`);
 
+  // Add description if available
+  if (prompt.description) {
+    lines.push(`描述: ${prompt.description}`);
+  }
+
+  // Add system instruction if available
+  if (prompt.systemInstruction) {
+    lines.push('');
+    lines.push('系统提示词:');
+    lines.push(prompt.systemInstruction);
+  }
+
   if (hasBilingual) {
     if (prompt.englishPrompt) {
       lines.push('');

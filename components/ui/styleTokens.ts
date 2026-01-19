@@ -271,6 +271,12 @@ export const editorClass = `w-full ${colors.bg.cardDarker} ${colors.border.secon
 export const SECTION_STYLES = {
   container: {
     base: `${colors.bg.primary} ${colors.border.primary} rounded-lg`,
+    // 统一的增强容器样式 - 用于所有主要区块
+    enhanced: `${colors.bg.primary} ${colors.border.primary} rounded-lg p-3 space-y-3 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-300`,
+    // 简化的容器样式 - 用于次级区块
+    simple: `${colors.bg.primary} ${colors.border.primary} rounded-lg p-4`,
+    // 紧凑的容器样式 - 用于需要更小间距的区块
+    compact: `${colors.bg.primary} ${colors.border.primary} rounded-lg p-2 space-y-2 shadow-lg shadow-black/20 backdrop-blur-sm transition-all duration-300`,
     accent: {
       basic: '',
       prompt: '',

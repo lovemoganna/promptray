@@ -144,6 +144,7 @@ export interface Prompt {
   // 自动提取的提示词视角信息（可选）
   extracted?: {
     intent?: string;         // 提示词的主要目的或意图（从内容中抽取）
+    role?: string;           // AI 的角色定义（从内容中抽取）
     audience?: string;       // 目标受众或使用者
     constraints?: string[];   // 约束条件或限制（多条）
     evaluation?: string;      // 模型或人工给出的评估/裁定说明

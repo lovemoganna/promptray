@@ -8,8 +8,6 @@ import {
   editorClass,
   // 新增的区域统一样式系统
   SECTION_STYLES,
-  // 新增的色彩和字体系统
-  THEME_COLORS,
   TYPOGRAPHY
 } from '../ui/styleTokens';
 
@@ -177,6 +175,60 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
   const systemRef = useRef<HTMLTextAreaElement | null>(null);
   const chinesePromptRef = useRef<HTMLElement | null>(null);
 
+  // 用于保存和恢复光标位置
+  const saveCursorPosition = (element: HTMLElement): number => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(element);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      return preCaretRange.toString().length;
+    }
+    return 0;
+  };
+
+  const restoreCursorPosition = (element: HTMLElement, position: number): void => {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    let currentPos = 0;
+    let found = false;
+
+    const setPosition = (node: Node) => {
+      if (found) return;
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textLength = node.textContent?.length || 0;
+        if (currentPos + textLength >= position) {
+          const offset = position - currentPos;
+          range.setStart(node, offset);
+          range.setEnd(node, offset);
+          found = true;
+          return;
+        }
+        currentPos += textLength;
+      } else {
+        for (const child of node.childNodes) {
+          setPosition(child);
+          if (found) break;
+        }
+      }
+    };
+
+    setPosition(element);
+
+    if (!found) {
+      // 如果没找到位置，设置到末尾
+      range.selectNodeContents(element);
+      range.collapse(false);
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
   const adjustSystemHeight = () => {
     const el = systemRef.current;
     if (!el) return;
@@ -216,6 +268,27 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
     updatePlaceholder();
     // adjust when content changes
   }, [formData.content]);
+
+  // 初始化contentEditable内容
+  useEffect(() => {
+    const element = chinesePromptRef.current;
+    if (element && isEditingChinesePrompt) {
+      const content = formData.content || '';
+      const displayContent = content || COMPONENT_CONFIG.placeholders.chinesePrompt;
+
+      // 只有当内容真正不同时才更新，避免不必要的重新渲染
+      if (element.textContent !== displayContent) {
+        element.textContent = displayContent;
+
+        // 如果是空内容且显示占位符，添加占位符样式
+        if (!content && displayContent === COMPONENT_CONFIG.placeholders.chinesePrompt) {
+          element.classList.add('empty-placeholder');
+        } else {
+          element.classList.remove('empty-placeholder');
+        }
+      }
+    }
+  }, [formData.content, isEditingChinesePrompt]);
 
   const getLineCount = (text: string): number => {
     if (!text) return 0;
@@ -408,11 +481,11 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             </button>
 
             {/* 次级操作按钮组 */}
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {initialData && onDuplicate && (
                 <button
                   onClick={onDuplicate}
-                  className="flex-1 py-2 text-sm font-medium text-gray-300 hover:text-white bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/20 hover:border-gray-600/40 rounded-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/20 hover:border-gray-600/40 rounded-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-2"
                   title="复制提示词"
                 >
                   <Icons.Copy size={14} />
@@ -422,7 +495,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
               {/* 取消按钮 */}
               <button
                 onClick={onCancel}
-                className="flex-1 py-2 text-sm font-medium text-gray-300 hover:text-gray-100 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-gray-500/50 rounded-lg transition-all duration-200 transform active:scale-95"
+                className="w-full py-2.5 text-sm font-medium text-gray-300 hover:text-gray-100 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/30 hover:border-gray-500/50 rounded-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center"
                 title="取消编辑"
               >
                 取消
@@ -435,20 +508,19 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
       <div className="w-full animate-slide-up-fade">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8">
           {/* Left: PromptMetaPanel (moved left) */}
-          <div className="xl:col-span-1 space-y-5">
+          <div className="xl:col-span-1 space-y-6">
             {/* Core Information (基础信息) - 重新设计的布局 */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.basic} p-6 space-y-6 shadow-lg shadow-black/20 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300`}>
+            <div className={SECTION_STYLES.container.enhanced}>
               <div className="flex items-center justify-between min-h-[56px]">
                 <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-3 mb-0`}>
-                  <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple} shadow-sm`}></div>
                   <span className={TYPOGRAPHY.letterSpacing.uppercase}>基础信息</span>
                 </h3>
               </div>
 
               {/* 主要信息区域 - 垂直排列，更清晰的视觉层次 */}
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {/* 标题区域 - 突出显示 */}
-                <div className="space-y-2">
+                <div className="space-y-2 min-h-[72px]">
                   <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>
                     标题 <span className="text-red-400">*</span>
                   </label>
@@ -488,7 +560,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
 
                 {/* 描述区域 */}
                 <div className="space-y-2">
-                  <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor}`}>描述</label>
+                  <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>描述</label>
                   <input
                     type="text"
                     value={formData.description}
@@ -501,7 +573,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                 {/* 标签区域 - 更突出的位置和样式 */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} font-semibold`}>
+                    <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>
                       标签
                     </label>
                     <div className="flex items-center gap-2">
@@ -522,7 +594,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       </button>
                     </div>
                   </div>
-                  <div className={`${THEME_COLORS.bg.tertiary} ${THEME_COLORS.border.primary} rounded-lg p-4 shadow-sm`}>
+                  <div className="relative">
                     <Tags
                       tags={formData.tags || []}
                       tagInput={tagInput || ''}
@@ -544,11 +616,13 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
 
                 {/* 属性设置区域 - 重新分组设计 */}
                 <div className="space-y-4">
-                  <h4 className={`${TYPOGRAPHY.fontSize['label-md']} ${TYPOGRAPHY.fontWeight.semibold} ${THEME_COLORS.text.secondary} ${TYPOGRAPHY.letterSpacing.uppercase} border-b ${THEME_COLORS.border.primary} pb-3 mb-4`}>
-                    属性设置
-                  </h4>
+                  <div className="flex items-center justify-between min-h-[40px]">
+                    <h4 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-3 mb-0`}>
+                      <span className={TYPOGRAPHY.letterSpacing.uppercase}>属性设置</span>
+                    </h4>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     {/* 类别 */}
                     <div className="space-y-2">
                       <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-xs font-medium`}>
@@ -632,32 +706,32 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             />
           </div>
 
-          {/* Right: Main editor (Prompt content, bilingual) - 重新设计的提示词编辑区域 */}
-          <div className="xl:col-span-1 space-y-6">
-            {/* Prompt Section Header */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.prompt} p-5`}>
-              <div className="flex items-center justify-between min-h-[56px]">
+          {/* Right: Main editor (Prompt content, bilingual) - 统一设计的提示词编辑区域 */}
+          <div className="xl:col-span-1">
+            {/* 统一的提示词编辑容器 */}
+            <div className={SECTION_STYLES.container.enhanced}>
+              {/* 容器标题 */}
+              <div className="flex items-center justify-between min-h-[56px] mb-0">
                 <h3 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} flex items-center gap-3 mb-0`}>
-                  <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue} shadow-sm`}></div>
                   <span className={TYPOGRAPHY.letterSpacing.uppercase}>提示词编辑</span>
                 </h3>
               </div>
-            </div>
 
-            {/* System Role - 改进的折叠设计 */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.basic} p-5`}>
+              {/* 内部组件容器 */}
+              <div className="space-y-3">
+                {/* System Role - 改进的折叠设计 */}
+            <div className={`${SECTION_STYLES.container.compact} -mt-4`}>
               <div className={`transition-all duration-300 ${showSystem ? '' : 'max-h-[72px] overflow-hidden'}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue} shadow-sm`}></div>
-                    <h4 className={`${SECTION_STYLES.content.subsectionTitle} ${THEME_COLORS.region.system} mb-0 ${TYPOGRAPHY.letterSpacing.uppercase}`}>
+                <div className="flex items-center justify-between mb-3 min-h-[56px]">
+                  <div className="space-y-2">
+                    <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>
                       系统角色
-                    </h4>
-                    {formData.systemInstruction && (
-                      <span className="text-xs text-blue-400/70 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                        已配置
-                      </span>
-                    )}
+                      {formData.systemInstruction && (
+                        <span className="text-xs text-blue-400/70 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 ml-2">
+                          已配置
+                        </span>
+                      )}
+                    </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -690,7 +764,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
 
                 {/* System Role Content */}
                 <div className={`transition-all duration-300 ${showSystem ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                  <div className="bg-gray-950/50 border border-blue-500/20 rounded-lg p-4">
+                  <div className="bg-gray-950/50 border border-blue-500/20 rounded-lg p-3">
                     <textarea
                       ref={(el) => {
                         if (el) systemRef.current = el;
@@ -701,31 +775,23 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       placeholder="在这里定义AI的角色、行为准则和专业领域..."
                       onInput={() => adjustSystemHeight()}
                     />
-                    {formData.systemInstruction && (
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-blue-500/20">
-                        <span className="text-xs text-blue-400/70">
-                          系统角色已配置 ({getTokenCount(formData.systemInstruction)} tokens)
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Chinese Prompt - 重新设计的中文提示词区域 */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.basic} p-5`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.blue} shadow-sm`}></div>
-                  <h4 className={`${SECTION_STYLES.content.subsectionTitle} ${THEME_COLORS.region.prompt} mb-0 ${TYPOGRAPHY.letterSpacing.uppercase}`}>
-                    中文提示词 <span className={`${THEME_COLORS.state.error} text-sm`}>*</span>
-                  </h4>
-                  {formData.content && (
-                    <span className="text-xs text-blue-400/70 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                      {getTokenCount(formData.content)} tokens
-                    </span>
-                  )}
+            <div className={SECTION_STYLES.container.enhanced}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="space-y-2">
+                  <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>
+                    中文提示词 <span className="text-red-400">*</span>
+                    {formData.content && (
+                      <span className="text-xs text-blue-400/70 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 ml-2">
+                        {getTokenCount(formData.content)} tokens
+                      </span>
+                    )}
+                  </label>
                 </div>
 
                 {/* 操作按钮组 */}
@@ -779,7 +845,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
               {/* 中文提示词内容区域 */}
               <div className="bg-gray-950/50 border border-blue-500/20 rounded-lg overflow-hidden">
                 {isEditingChinesePrompt ? (
-                  <div className="p-4">
+                  <div className="p-3">
                     <div
                       ref={(el) => {
                         if (el) chinesePromptRef.current = el as unknown as HTMLTextAreaElement;
@@ -788,23 +854,45 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       suppressContentEditableWarning
                       onInput={(e) => {
                         const target = e.target as HTMLDivElement;
+                        const cursorPos = saveCursorPosition(target);
+
                         let newContent = target.textContent || '';
 
+                        // 避免处理占位符文本作为实际内容
                         if (newContent === COMPONENT_CONFIG.placeholders.chinesePrompt) {
                           newContent = '';
                         }
 
+                        // 更新表单数据
                         onFormDataChange({ ...formData, content: newContent });
+
+                        // 调整高度
                         adjustChinesePromptHeight();
+
+                        // 在下一个tick恢复光标位置，避免React重新渲染影响光标
+                        setTimeout(() => {
+                          if (chinesePromptRef.current) {
+                            restoreCursorPosition(chinesePromptRef.current, cursorPos);
+                          }
+                        }, 0);
                       }}
                       onFocus={(e) => {
                         const target = e.target as HTMLDivElement;
+                        // 清除占位符文本
                         if (target.textContent === COMPONENT_CONFIG.placeholders.chinesePrompt) {
                           target.textContent = '';
+                          // 重置光标到开头
+                          const range = document.createRange();
+                          const selection = window.getSelection();
+                          range.setStart(target, 0);
+                          range.setEnd(target, 0);
+                          selection?.removeAllRanges();
+                          selection?.addRange(range);
                         }
                       }}
                       onBlur={(e) => {
                         const target = e.target as HTMLDivElement;
+                        // 如果内容为空，显示占位符
                         if (!target.textContent?.trim()) {
                           target.textContent = COMPONENT_CONFIG.placeholders.chinesePrompt;
                         }
@@ -817,7 +905,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                       data-placeholder={COMPONENT_CONFIG.placeholders.chinesePrompt.replace('\n', '&#10;')}
                       autoFocus
                     >
-                      {formData.content || COMPONENT_CONFIG.placeholders.chinesePrompt}
+                      {/* 内容通过useEffect动态设置，避免初始化时的光标问题 */}
                     </div>
                   </div>
                 ) : (
@@ -854,21 +942,20 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
             </div>
 
             {/* English Prompt - 重新设计的英文提示词区域 */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.basic} p-5`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.green} shadow-sm`}></div>
-                  <h4 className={`${SECTION_STYLES.content.subsectionTitle} ${THEME_COLORS.state.success} mb-0 ${TYPOGRAPHY.letterSpacing.uppercase}`}>
+            <div className={SECTION_STYLES.container.enhanced}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="space-y-2">
+                  <label className={`${SECTION_STYLES.content.fieldLabel} ${SECTION_STYLES.content.fieldLabelColor} text-sm font-semibold`}>
                     英文提示词
-                  </h4>
-                  {formData.englishPrompt && (
-                    <>
-                      <span className="text-xs text-green-400/70 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                        {getTokenCount(formData.englishPrompt)} tokens
-                      </span>
-                      <span className="text-xs text-green-400/70 font-normal">(自动翻译)</span>
-                    </>
-                  )}
+                    {formData.englishPrompt && (
+                      <>
+                        <span className="text-xs text-green-400/70 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 ml-2">
+                          {getTokenCount(formData.englishPrompt)} tokens
+                        </span>
+                        <span className="text-xs text-green-400/70 font-normal ml-2">(自动翻译)</span>
+                      </>
+                    )}
+                  </label>
                 </div>
 
                 {formData.englishPrompt ? (
@@ -934,12 +1021,13 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                 </div>
               )}
             </div>
+              </div>
+            </div>
 
             {/* Examples - 重新设计的参照示例区域 */}
-            <div className={`${SECTION_STYLES.container.base} ${SECTION_STYLES.container.accent.examples} p-5`}>
-              <div className="flex items-center justify-between mb-6">
+            <div className={`${SECTION_STYLES.container.enhanced} mt-4`}>
+              <div className="flex items-center justify-between min-h-[48px] mb-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full ${SECTION_STYLES.icons.indicator.variants.purple} shadow-sm`}></div>
                   <h4 className={`${SECTION_STYLES.content.sectionTitle} ${SECTION_STYLES.content.sectionTitleColor} mb-0 ${TYPOGRAPHY.letterSpacing.uppercase}`}>
                     参照示例
                   </h4>
@@ -961,7 +1049,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
               </div>
 
               {/* 示例内容区域 */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {(formData.examples || []).length === 0 ? (
                   <div className="bg-gray-950/30 border border-dashed border-purple-500/20 rounded-lg p-8">
                     <div className="text-center space-y-4">
@@ -980,7 +1068,7 @@ export const PromptEditTab: React.FC<PromptEditTabProps> = ({
                   </div>
                 ) : (
                   (formData.examples || []).map((ex, idx) => (
-                    <div key={idx} className="bg-gray-950/50 border border-purple-500/20 rounded-lg p-4 space-y-4">
+                    <div key={idx} className="bg-gray-950/50 border border-purple-500/20 rounded-lg p-3 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-purple-300">示例 {idx + 1}</span>
